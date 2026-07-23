@@ -10,9 +10,12 @@ export class BaileysEngine {
   private static sessions: Map<string, any> = new Map();
   private static qrCodes: Map<string, string> = new Map();
 
-  static async initSession(instanceId: string) {
+  static async initSession(instanceId: string, forceFresh: boolean = false) {
     try {
       const authFolder = path.join(process.cwd(), 'uploads', 'sessions', instanceId);
+      if (forceFresh && fs.existsSync(authFolder)) {
+        fs.rmSync(authFolder, { recursive: true, force: true });
+      }
       if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true });
       }

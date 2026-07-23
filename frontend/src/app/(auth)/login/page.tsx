@@ -15,7 +15,7 @@ export default function LoginPage() {
   const setUser = useAuthStore((state) => state.setUser);
 
   // Tab State: 'email' | 'otp'
-  const [activeTab, setActiveTab] = useState<'email' | 'otp'>('otp');
+  const [activeTab, setActiveTab] = useState<'email' | 'otp'>('email');
 
   // Email Form State
   const [email, setEmail] = useState('');
@@ -48,10 +48,10 @@ export default function LoginPage() {
       const res = await apiClient.get('/auth/setup-status');
       if (res.data?.data?.isSetupRequired) {
         setIsSetupRequired(true);
+        router.push('/setup');
       }
     } catch (err) {
-      // Safe default: Assume setup may be required on fresh startup or transient network error
-      setIsSetupRequired(true);
+      // Continue
     }
   };
 

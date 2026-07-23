@@ -63,14 +63,17 @@ export const createInstance = async (req: AuthRequest, res: Response, next: Next
 export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const instance = await Instance.findById(id);
+    let instance = await Instance.findById(id);
+    if (!instance) {
+      instance = await Instance.findOne({ instanceId: id });
+    }
 
     if (!instance) {
       return sendError(res, 'Instance not found', 404);
     }
 
     if (!BaileysEngine.getSession(instance.instanceId)) {
-      BaileysEngine.initSession(instance.instanceId);
+      await BaileysEngine.initSession(instance.instanceId, instance.status !== 'open');
     }
 
     const qrData = await EvolutionService.getQRCode(instance.instanceId);
