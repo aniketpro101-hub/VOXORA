@@ -347,7 +347,8 @@ export const requestOTP = async (req: Request, res: Response, next: NextFunction
     }
 
     const result = await OTPService.requestOTP(phone);
-    return sendSuccess(res, result.message, { devCode: result.devCode });
+    const responseData = process.env.NODE_ENV === 'development' ? { devCode: result.devCode } : {};
+    return sendSuccess(res, result.message, responseData);
   } catch (error: any) {
     return sendError(res, error.message || 'Failed to send OTP', 400);
   }

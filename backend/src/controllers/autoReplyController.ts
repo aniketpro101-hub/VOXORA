@@ -117,7 +117,15 @@ export const updateAIConfig = async (req: AuthRequest, res: Response, next: Next
       config = new AIConfig({ userId: req.user?.userId });
     }
 
-    Object.assign(config, req.body);
+    const { apiKey, provider, aiModel, systemPrompt, temperature, maxTokens, isActive } = req.body;
+    if (apiKey !== undefined) config.apiKey = apiKey;
+    if (provider !== undefined) config.provider = provider;
+    if (aiModel !== undefined) config.aiModel = aiModel;
+    if (systemPrompt !== undefined) config.systemPrompt = systemPrompt;
+    if (temperature !== undefined) config.temperature = temperature;
+    if (maxTokens !== undefined) config.maxTokens = maxTokens;
+    if (isActive !== undefined) config.isActive = isActive;
+
     await config.save();
 
     return sendSuccess(res, 'AI configuration saved', config);
@@ -128,7 +136,8 @@ export const updateAIConfig = async (req: AuthRequest, res: Response, next: Next
 
 export const getActiveSessions = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const sessions = await ConversationSession.find({ status: { $ne: 'completed' } }).sort({ lastInteractionAt: -1 });
+    const filter = req.user?.role === 'admin' || !req.user?.userId ? {} : { userId: req.user.userId };
+    const sessions = await ConversationSession.find({ status: { $ne: 'completed' }, ...filter }).sort({ lastInteractionAt: -1 });
     return sendSuccess(res, 'Active conversation sessions retrieved', sessions);
   } catch (error) {
     next(error);

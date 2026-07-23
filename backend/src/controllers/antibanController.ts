@@ -26,7 +26,17 @@ export const updateAntibanSettings = async (req: AuthRequest, res: Response, nex
       settings = new AntibanSettings({ userId: req.user?.userId });
     }
 
-    Object.assign(settings, req.body);
+    const { minDelay, maxDelay, messagesPerBatch, batchBreakDuration, sleepModeEnabled, sleepStartHour, sleepEndHour, pauseOnConsecutiveFailures } = req.body;
+
+    if (minDelay !== undefined) settings.minDelay = minDelay;
+    if (maxDelay !== undefined) settings.maxDelay = maxDelay;
+    if (messagesPerBatch !== undefined) settings.messagesPerBatch = messagesPerBatch;
+    if (batchBreakDuration !== undefined) settings.batchBreakDuration = batchBreakDuration;
+    if (sleepModeEnabled !== undefined) settings.sleepModeEnabled = sleepModeEnabled;
+    if (sleepStartHour !== undefined) settings.sleepStartHour = sleepStartHour;
+    if (sleepEndHour !== undefined) settings.sleepEndHour = sleepEndHour;
+    if (pauseOnConsecutiveFailures !== undefined) settings.pauseOnConsecutiveFailures = pauseOnConsecutiveFailures;
+
     await settings.save();
 
     return sendSuccess(res, 'Anti-ban settings updated successfully', settings);

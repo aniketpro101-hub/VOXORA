@@ -15,10 +15,12 @@ import {
   runCampaignPreflight,
 } from '../controllers/campaignController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { agentAndAbove } from '../middleware/rbac.js';
 
 const router = Router();
 
 router.use(authenticateToken);
+router.use(agentAndAbove);
 
 router.post('/', createCampaign);
 router.get('/', listCampaigns);
