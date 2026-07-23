@@ -1,0 +1,4 @@
+/setup /setup/index.html 200
+/login /login/index.html 200
+/register /register/index.html 200
+/dashboard /dashboard/index.html 200
