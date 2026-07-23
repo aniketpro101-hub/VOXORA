@@ -370,16 +370,11 @@ export const verifyOTP = async (req: Request, res: Response, next: NextFunction)
       user = await User.findOne({ email: generatedEmail });
 
       if (!user) {
-        let userCount = 0;
-        try {
-          userCount = await User.countDocuments();
-        } catch (e) {}
-
         user = await User.create({
           name: `WhatsApp User (+${cleanPhone})`,
           email: generatedEmail,
           phone: cleanPhone,
-          role: userCount === 0 ? 'admin' : 'agent',
+          role: 'agent',
           isActive: true,
         });
       }

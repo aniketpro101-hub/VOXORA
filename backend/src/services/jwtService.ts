@@ -5,10 +5,10 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'voxora_refresh_sec
 
 if (process.env.NODE_ENV === 'production') {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('dev_only')) {
-    console.error('CRITICAL SECURITY ALERT: JWT_SECRET must be set to a custom strong secret in production.');
+    throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is required in production mode. Refusing to start.');
   }
   if (!process.env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET.includes('dev_only')) {
-    console.error('CRITICAL SECURITY ALERT: JWT_REFRESH_SECRET must be set to a custom strong secret in production.');
+    throw new Error('FATAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is required in production mode. Refusing to start.');
   }
 }
 

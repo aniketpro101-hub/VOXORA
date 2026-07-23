@@ -10,16 +10,24 @@ export class AnalyticsService {
    * 1. Generates top-level KPI metrics for main analytics dashboard (100% REAL DATA)
    */
   static async getDashboardStats(userId: string) {
-    const filter = userId ? { createdBy: userId } : {};
     const ownerFilter = userId ? { owner: userId } : {};
 
-    const totalSent = await MessageLog.countDocuments({ status: { $in: ['sent', 'delivered', 'read'] }, ...filter });
-    const totalDelivered = await MessageLog.countDocuments({ status: { $in: ['delivered', 'read'] }, ...filter });
-    const totalRead = await MessageLog.countDocuments({ status: 'read', ...filter });
-    const totalFailed = await MessageLog.countDocuments({ status: 'failed', ...filter });
-    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true, ...filter });
+    let campaignIds: any[] | null = null;
+    if (userId) {
+      const userCampaigns = await Campaign.find({ owner: userId }).select('_id');
+      campaignIds = userCampaigns.map((c) => c._id);
+    }
 
-    const totalContacts = await Contact.countDocuments(filter);
+    const msgFilter = campaignIds ? { campaignId: { $in: campaignIds } } : {};
+    const contactFilter = userId ? { createdBy: userId } : {};
+
+    const totalSent = await MessageLog.countDocuments({ status: { $in: ['sent', 'delivered', 'read'] }, ...msgFilter });
+    const totalDelivered = await MessageLog.countDocuments({ status: { $in: ['delivered', 'read'] }, ...msgFilter });
+    const totalRead = await MessageLog.countDocuments({ status: 'read', ...msgFilter });
+    const totalFailed = await MessageLog.countDocuments({ status: 'failed', ...msgFilter });
+    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true, ...msgFilter });
+
+    const totalContacts = await Contact.countDocuments(contactFilter);
 
     const deliveryRate = totalSent > 0 ? ((totalDelivered / totalSent) * 100).toFixed(1) : '0';
     const readRate = totalDelivered > 0 ? ((totalRead / totalDelivered) * 100).toFixed(1) : '0';
