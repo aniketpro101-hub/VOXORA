@@ -66,27 +66,37 @@ export class KeyGenService {
   /**
    * Bulk generates N keys (default 10) and saves them in local database
    */
-  static async generateBulkKeys(count = 10, adminNotes = 'Testing Batch 1'): Promise<ILicenseKey[]> {
-    const createdKeys: ILicenseKey[] = [];
+  static async generateBulkKeys(count = 10, adminNotes = 'Testing Batch 1'): Promise<any[]> {
+    if (count > 100) {
+      throw new Error('Maximum 100 license keys per batch. Requested: ' + count);
+    }
+    if (count < 1) {
+      throw new Error('Minimum 1 license key per batch.');
+    }
+
+    const createdKeys: any[] = [];
 
     for (let i = 0; i < count; i++) {
       let keyStr = this.generateSingleKey();
-      let exists = await LicenseKey.findOne({ key: keyStr });
+      const hashedKey = crypto.createHash('sha256').update(keyStr).digest('hex');
+      let exists = await LicenseKey.findOne({ key: hashedKey });
 
       while (exists) {
         keyStr = this.generateSingleKey();
-        exists = await LicenseKey.findOne({ key: keyStr });
+        const nextHashed = crypto.createHash('sha256').update(keyStr).digest('hex');
+        exists = await LicenseKey.findOne({ key: nextHashed });
       }
 
-      const record = await LicenseKey.create({
-        key: keyStr,
+      const finalHashed = crypto.createHash('sha256').update(keyStr).digest('hex');
+      const created = await LicenseKey.create({
+        key: finalHashed,
         status: 'unused',
         validityDays: 30,
         adminNotes,
         generatedAt: new Date(),
       });
 
-      createdKeys.push(record);
+      createdKeys.push({ ...created.toObject(), rawKey: keyStr });
     }
 
     logger.info(`[KeyGenService] Generated ${count} new VOXORA license keys`);

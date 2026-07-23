@@ -70,15 +70,27 @@ export class AnalyticsService {
   /**
    * 2. Returns detailed campaign performance report
    */
-  static async getCampaignReport(campaignId: string) {
-    const campaign = await Campaign.findById(campaignId);
+  static async getCampaignReport(campaignId: string, userId?: string) {
+    const campaignFilter: any = { _id: campaignId };
+    if (userId) {
+      campaignFilter.owner = userId;
+    }
+    const campaign = await Campaign.findOne(campaignFilter);
+    if (!campaign) {
+      return {
+        campaignName: 'Access Denied',
+        funnel: { sent: 0, delivered: 0, read: 0, mediaViewed: 0, buttonClicked: 0, linkVisited: 0, replied: 0, converted: 0, failed: 0 },
+        roi: { totalRevenue: '₹0', cost: '₹0', percentage: '0%' },
+        mediaStats: { imagesViewed: 0, imagesDownloaded: 0, pdfsOpened: 0 },
+      };
+    }
     const sent = await MessageLog.countDocuments({ campaignId, status: { $in: ['sent', 'delivered', 'read'] } });
     const delivered = await MessageLog.countDocuments({ campaignId, status: { $in: ['delivered', 'read'] } });
     const read = await MessageLog.countDocuments({ campaignId, status: 'read' });
     const failed = await MessageLog.countDocuments({ campaignId, status: 'failed' });
 
     return {
-      campaignName: campaign?.name || 'Campaign Report',
+      campaignName: campaign.name || 'Campaign Report',
       funnel: {
         sent,
         delivered,
@@ -106,7 +118,15 @@ export class AnalyticsService {
   /**
    * 3. Retrieves event timeline for a contact
    */
-  static async getContactTimeline(contactId: string) {
+  static async getContactTimeline(contactId: string, userId?: string) {
+    const contactFilter: any = { _id: contactId };
+    if (userId) {
+      contactFilter.createdBy = userId;
+    }
+    const contact = await Contact.findOne(contactFilter);
+    if (!contact) {
+      return { messages: [], linkClicks: [], mediaActions: [] };
+    }
     const messages = await MessageLog.find({ contactId }).sort({ createdAt: -1 });
     const linkClicks = await LinkClick.find({ contactId }).sort({ createdAt: -1 });
     const mediaActions = await MediaInteraction.find({ contactId }).sort({ createdAt: -1 });

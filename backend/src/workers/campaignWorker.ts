@@ -103,20 +103,21 @@ export function initCampaignWorker() {
           await dbJob.save();
 
           // Update counters
-          campaign.sentCount += 1;
-          campaign.currentBatch += 1;
-          instance.currentDayCount += 1;
-          instance.currentHourCount += 1;
-          instance.totalMessagesSent += 1;
-          instance.consecutiveFailures = 0;
-          await campaign.save();
-          await instance.save();
+          await Campaign.updateOne(
+            { _id: campaign._id },
+            { $inc: { sentCount: 1, currentBatch: 1 }, $set: { consecutiveFailures: 0 } }
+          );
+          await Instance.updateOne(
+            { _id: instance._id },
+            { $inc: { currentDayCount: 1, currentHourCount: 1, totalMessagesSent: 1 }, $set: { consecutiveFailures: 0 } }
+          );
 
           // Socket.IO Progress Broadcast (Room Targeted)
           const io = getSocketIO();
           if (io) {
+            const freshCampaign = await Campaign.findById(campaign._id);
             io.to(`campaign:${campaign._id}`).emit(`campaign:${campaign._id}:progress`, {
-              sentCount: campaign.sentCount,
+              sentCount: freshCampaign?.sentCount || 0,
               totalContacts: campaign.totalContacts,
               recentPhone: dbJob.phone,
               status: 'sent',

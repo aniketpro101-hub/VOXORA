@@ -13,10 +13,12 @@ import {
   createNote,
 } from '../controllers/crmController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { agentAndAbove } from '../middleware/rbac.js';
 
 const router = Router();
 
 router.use(authenticateToken);
+router.use(agentAndAbove);
 
 // Contacts
 router.get('/contacts', listContacts);

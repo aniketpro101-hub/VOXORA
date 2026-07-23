@@ -3,7 +3,10 @@ import { AutoReplyService } from '../services/autoReplyService.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+if (!WEBHOOK_SECRET) {
+  console.warn('[Webhook] WARNING: WEBHOOK_SECRET not set. Webhook authentication is DISABLED. Set WEBHOOK_SECRET env var for production.');
+}
 
 router.post('/evolution', async (req: Request, res: Response) => {
   try {

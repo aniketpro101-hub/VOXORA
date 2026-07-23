@@ -15,10 +15,12 @@ import {
   previewMessage,
 } from '../controllers/messageController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { agentAndAbove } from '../middleware/rbac.js';
 
 const router = Router();
 
 router.use(authenticateToken);
+router.use(agentAndAbove);
 
 router.post('/send-text', sendText);
 router.post('/send-image', sendImage);

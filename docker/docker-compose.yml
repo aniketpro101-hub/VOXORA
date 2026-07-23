@@ -51,10 +51,10 @@ services:
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-voxora_evolution_secret_key_2026}
       - LOG_LEVEL=ERROR,WARN,INFO
       - DATABASE_ENABLED=true
-      - DATABASE_CONNECTION_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-voxora_secure_password}@mongodb:27017/evolution?authSource=admin
+      - DATABASE_CONNECTION_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/evolution?authSource=admin
       - DATABASE_CONNECTION_CLIENT_NAME=voxora_evo
       - CACHE_REDIS_ENABLED=true
-      - CACHE_REDIS_URI=redis://:${REDIS_PASSWORD:-voxora_redis_password}@redis:6379/1
+      - CACHE_REDIS_URI=redis://:${REDIS_PASSWORD}@redis:6379/1
     volumes:
       - evo_instances:/evolution/instances
     networks:
@@ -76,7 +76,7 @@ services:
     environment:
       - PORT=4000
       - NODE_ENV=${NODE_ENV:-production}
-      - MONGO_URI=${MONGO_URI:-mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-voxora_secure_password}@mongodb:27017/voxora?authSource=admin}
+      - MONGO_URI=${MONGO_URI:-mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/voxora?authSource=admin}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-voxora_redis_password}

@@ -21,7 +21,11 @@ export const listABTests = async (req: AuthRequest, res: Response, next: NextFun
 export const createABTest = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const test = await ABTest.create({
-      ...req.body,
+      name: req.body.name,
+      variantA: req.body.variantA,
+      variantB: req.body.variantB,
+      metric: req.body.metric,
+      durationDays: req.body.durationDays,
       createdBy: req.user?.userId,
     });
     return sendSuccess(res, 'A/B test created', test, 201);

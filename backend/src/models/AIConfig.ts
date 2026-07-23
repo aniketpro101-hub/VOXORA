@@ -22,7 +22,7 @@ const AIConfigSchema: Schema<IAIConfig> = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
     provider: { type: String, enum: ['openai', 'anthropic', 'gemini'], default: 'openai' },
-    apiKey: { type: String, default: '' },
+    apiKey: { type: String, default: '' }, // Now stores ENCRYPTED value; see autoReplyController for encrypt/decrypt
     aiModel: { type: String, default: 'gpt-4o-mini' },
     systemPrompt: {
       type: String,

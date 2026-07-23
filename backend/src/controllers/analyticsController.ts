@@ -17,7 +17,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
 export const getCampaignReport = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const report = await AnalyticsService.getCampaignReport(id);
+    const userId = req.user?.role === 'admin' ? undefined : req.user?.userId;
+    const report = await AnalyticsService.getCampaignReport(id, userId);
     return sendSuccess(res, 'Campaign analytics report retrieved', report);
   } catch (error) {
     next(error);
@@ -27,7 +28,8 @@ export const getCampaignReport = async (req: AuthRequest, res: Response, next: N
 export const getContactTimeline = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const timeline = await AnalyticsService.getContactTimeline(id);
+    const userId = req.user?.role === 'admin' ? undefined : req.user?.userId;
+    const timeline = await AnalyticsService.getContactTimeline(id, userId);
     return sendSuccess(res, 'Contact interaction timeline retrieved', timeline);
   } catch (error) {
     next(error);

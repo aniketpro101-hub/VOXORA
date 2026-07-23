@@ -17,7 +17,9 @@ export class LicenseService {
       throw new Error('Invalid key format. Key must be VXR-XXXX-XXXX-XXXX-XXXX');
     }
 
-    const record = await LicenseKey.findOne({ key: formatted });
+    const providedKey = formatted;
+    const hashedKey = crypto.createHash('sha256').update(providedKey).digest('hex');
+    const record = await LicenseKey.findOne({ $or: [{ key: hashedKey }, { key: providedKey }] });
     if (!record) {
       throw new Error('License key not found');
     }
@@ -84,7 +86,9 @@ export class LicenseService {
    * 2. Verifies license status on startup and periodic background check
    */
   static async verifyLicense(key: string, hwid: string) {
-    const record = await LicenseKey.findOne({ key });
+    const providedKey = key;
+    const hashedKey = crypto.createHash('sha256').update(providedKey).digest('hex');
+    const record = await LicenseKey.findOne({ $or: [{ key: hashedKey }, { key: providedKey }] });
     if (!record) {
       return { valid: false, reason: 'License key not found' };
     }

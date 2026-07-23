@@ -173,7 +173,16 @@ export const getStatus = async (req: AuthRequest, res: Response, next: NextFunct
 export const updateInstance = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const instance = await Instance.findByIdAndUpdate(id, req.body, { new: true });
+    const { name, dailyLimit, antibanEnabled, warmupEnabled } = req.body;
+    const allowedUpdates: any = {};
+    if (name !== undefined) allowedUpdates.name = name;
+    if (dailyLimit !== undefined) allowedUpdates.dailyLimit = dailyLimit;
+    if (antibanEnabled !== undefined) allowedUpdates.antibanEnabled = antibanEnabled;
+    if (warmupEnabled !== undefined) allowedUpdates.warmupEnabled = warmupEnabled;
+
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, owner: req.user.userId };
+    const instance = await Instance.findOneAndUpdate(filter, allowedUpdates, { new: true });
+    if (!instance) return sendError(res, 'Instance not found or access denied', 404);
     return sendSuccess(res, 'Instance updated', instance);
   } catch (error) {
     next(error);

@@ -7,21 +7,33 @@ import { AuthRequest } from '../middleware/auth.js';
 
 /**
  * Real Database Aggregation for Dashboard Stats (Zero Fake Data)
+ * FIXED: Use model-specific filters — Campaign uses {owner}, MessageLog uses {campaignId: {$in}}, Contact uses {createdBy}
  */
 export const getDashboardStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.userId;
-    const filter = req.user?.role === 'admin' || !userId ? {} : { owner: userId };
+    const isAdmin = req.user?.role === 'admin' || !userId;
 
-    const totalSent = await MessageLog.countDocuments({ status: 'sent', ...filter });
-    const totalDelivered = await MessageLog.countDocuments({ status: 'delivered', ...filter });
-    const totalRead = await MessageLog.countDocuments({ status: 'read', ...filter });
-    const totalFailed = await MessageLog.countDocuments({ status: 'failed', ...filter });
-    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true, ...filter });
+    // Model-specific ownership filters
+    const campaignFilter = isAdmin ? {} : { owner: userId };
+    const contactFilter = isAdmin ? {} : { createdBy: userId };
 
-    const totalCampaigns = await Campaign.countDocuments(filter);
-    const activeCampaigns = await Campaign.countDocuments({ status: 'running', ...filter });
-    const totalContacts = await Contact.countDocuments(filter);
+    let msgFilter: any = {};
+    if (!isAdmin && userId) {
+      const userCampaigns = await Campaign.find({ owner: userId }).select('_id');
+      const campaignIds = userCampaigns.map((c) => c._id);
+      msgFilter = { campaignId: { $in: campaignIds } };
+    }
+
+    const totalSent = await MessageLog.countDocuments({ status: 'sent', ...msgFilter });
+    const totalDelivered = await MessageLog.countDocuments({ status: 'delivered', ...msgFilter });
+    const totalRead = await MessageLog.countDocuments({ status: 'read', ...msgFilter });
+    const totalFailed = await MessageLog.countDocuments({ status: 'failed', ...msgFilter });
+    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true, ...msgFilter });
+
+    const totalCampaigns = await Campaign.countDocuments(campaignFilter);
+    const activeCampaigns = await Campaign.countDocuments({ status: 'running', ...campaignFilter });
+    const totalContacts = await Contact.countDocuments(contactFilter);
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -29,7 +41,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
     const todaySent = await MessageLog.countDocuments({
       status: 'sent',
       createdAt: { $gte: startOfToday },
-      ...filter,
+      ...msgFilter,
     });
 
     const deliveryRate = totalSent > 0 ? ((totalDelivered / totalSent) * 100).toFixed(1) : '0';
@@ -49,7 +61,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       deliveryRate: Number(deliveryRate),
       readRate: Number(readRate),
       replyRate: Number(replyRate),
-      revenue: 0, // Real revenue: ₹0 if no sales
+      revenue: 0,
     });
   } catch (error) {
     next(error);
@@ -57,12 +69,24 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
 };
 
 /**
- * Real System Activity Feed
+ * Real System Activity Feed — FIXED: scoped to user's campaigns
  */
 export const getRecentActivity = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const recentLogs = await MessageLog.find().sort({ createdAt: -1 }).limit(10);
-    const recentCampaigns = await Campaign.find().sort({ createdAt: -1 }).limit(5);
+    const userId = req.user?.userId;
+    const isAdmin = req.user?.role === 'admin' || !userId;
+
+    let msgFilter: any = {};
+    let campaignFilter: any = {};
+    if (!isAdmin && userId) {
+      const userCampaigns = await Campaign.find({ owner: userId }).select('_id');
+      const campaignIds = userCampaigns.map((c) => c._id);
+      msgFilter = { campaignId: { $in: campaignIds } };
+      campaignFilter = { owner: userId };
+    }
+
+    const recentLogs = await MessageLog.find(msgFilter).sort({ createdAt: -1 }).limit(10);
+    const recentCampaigns = await Campaign.find(campaignFilter).sort({ createdAt: -1 }).limit(5);
 
     const activities = [
       ...recentLogs.map((l) => ({

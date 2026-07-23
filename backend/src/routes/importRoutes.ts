@@ -3,11 +3,13 @@ import { uploadMiddleware } from '../services/uploadService.js';
 import { ImportService } from '../services/importService.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { agentAndAbove } from '../middleware/rbac.js';
 import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 router.use(authenticateToken);
+router.use(agentAndAbove);
 
 router.post('/excel', uploadMiddleware.single('file'), async (req: Request, res: Response) => {
   try {

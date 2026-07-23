@@ -46,24 +46,25 @@ export class CampaignService {
 
     const totalContacts = contactIds.length || data.totalContacts || 0;
 
-    // Synchronize message & template fields
-    if (data.message) {
-      if (!data.messageTemplate) data.messageTemplate = data.message;
-      if (!data.messageTemplates || data.messageTemplates.length === 0) {
-        data.messageTemplates = [data.message];
-      }
-    }
     if (data.mediaFiles && data.mediaFiles.length > 0 && !data.mediaUrl) {
       data.mediaUrl = data.mediaFiles[0];
     }
 
     const campaign = await Campaign.create({
-      ...data,
+      name: data.name,
+      message: data.message,
+      messageTemplate: data.messageTemplate || data.message,
+      messageTemplates: data.messageTemplates || (data.message ? [data.message] : []),
+      mediaUrl: data.mediaUrl,
+      mediaType: data.mediaType,
+      mediaCaption: data.mediaCaption,
+      totalContacts,
       contacts: contactIds,
+      status: 'draft',
       owner: userId,
       createdBy: userId,
-      status: 'draft',
-      totalContacts,
+      scheduleAt: data.scheduleAt,
+      settings: data.settings,
       stats: {
         totalContacts,
         sentCount: 0,

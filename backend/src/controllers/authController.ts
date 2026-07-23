@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { User, IUser } from '../models/User.js';
+import { BlacklistedToken } from '../models/BlacklistedToken.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/jwtService.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { AuthRequest } from '../middleware/auth.js';
@@ -172,6 +173,13 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
     }
 
     const decoded = verifyRefreshToken(token);
+
+    // Check if token is blacklisted
+    const isBlacklisted = await BlacklistedToken.findOne({ token });
+    if (isBlacklisted) {
+      return sendError(res, 'Token has been revoked. Please log in again.', 401);
+    }
+
     const user = await User.findById(decoded.userId);
 
     if (!user) {
@@ -205,10 +213,24 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
 export const logout = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (refreshToken) {
+      try {
+        const decoded = verifyRefreshToken(refreshToken);
+        await BlacklistedToken.create({
+          token: refreshToken,
+          expiresAt: new Date(decoded.exp ? decoded.exp * 1000 : Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+      } catch (e) {
+        // Ignore invalid token decoding during logout
+      }
+    }
     res.clearCookie('refreshToken');
     return sendSuccess(res, 'Logged out successfully');
   } catch (error) {
-    next(error);
+    // Still clear cookie even if blacklisting fails
+    res.clearCookie('refreshToken');
+    return sendSuccess(res, 'Logged out successfully');
   }
 };
 

@@ -20,6 +20,10 @@ export const getContacts = async (req: AuthRequest, res: Response, next: NextFun
     const { page = 1, limit = 50, search, group, tab, source, country } = req.query;
 
     const query: any = {};
+    // Ownership filter: non-admin users only see their own contacts
+    if (req.user?.role !== 'admin' && req.user?.userId) {
+      query.createdBy = req.user.userId;
+    }
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -210,7 +214,7 @@ export const grabWhatsAppContacts = async (req: AuthRequest, res: Response, next
           source: 'whatsapp_contact',
           isAutoNamed: item.isAutoNamed,
           autoName: item.autoName,
-          createdBy: req.user?.userId || '650000000000000000000001',
+          createdBy: req.user!.userId,
         });
         newCount++;
       }
@@ -260,7 +264,7 @@ export const grabWhatsAppGroupMembers = async (req: AuthRequest, res: Response, 
           source: 'whatsapp_group',
           isAutoNamed: m.isAutoNamed,
           autoName: m.autoName,
-          createdBy: req.user?.userId || '650000000000000000000001',
+          createdBy: req.user!.userId,
         });
         newCount++;
       }
@@ -295,7 +299,7 @@ export const importVCard = async (req: AuthRequest, res: Response, next: NextFun
           company: c.company,
           address: c.address,
           source: 'vcard_import',
-          createdBy: req.user?.userId || '650000000000000000000001',
+          createdBy: req.user!.userId,
         });
         newCount++;
       }
@@ -331,7 +335,7 @@ export const importGoogleCSV = async (req: AuthRequest, res: Response, next: Nex
           company: c.company,
           designation: c.designation,
           source: 'google_contacts',
-          createdBy: req.user?.userId || '650000000000000000000001',
+          createdBy: req.user!.userId,
         });
         newCount++;
       }
@@ -368,7 +372,7 @@ export const sendQuickMessage = async (req: AuthRequest, res: Response, next: Ne
           name: name || `Contact ${cleanPhone.slice(-4)}`,
           phone: cleanPhone,
           source: 'quick_message',
-          createdBy: req.user?.userId || '650000000000000000000001',
+          createdBy: req.user!.userId,
         });
       }
     }
@@ -381,7 +385,7 @@ export const sendQuickMessage = async (req: AuthRequest, res: Response, next: Ne
       stats: { totalContacts: 1, sentCount: 1, deliveredCount: 1, readCount: 0, failedCount: 0 },
       status: 'completed',
       type: 'regular',
-      owner: req.user?.userId || '650000000000000000000001',
+      owner: req.user!.userId,
     });
 
     await MessageLog.create({

@@ -81,7 +81,7 @@ export const createImportHistory = async (req: AuthRequest, res: Response, next:
       invalidRows: invalidRows || 0,
       duplicateRows: duplicateRows || 0,
       groupName: groupName || 'General',
-      importedBy: req.user?.userId || '650000000000000000000001',
+      importedBy: req.user!.userId,
     });
 
     return sendSuccess(res, 'Import history recorded', item, 201);

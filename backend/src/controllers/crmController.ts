@@ -53,7 +53,15 @@ export const getContactById = async (req: AuthRequest, res: Response, next: Next
 export const createContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const contact = await Contact.create({
-      ...req.body,
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      company: req.body.company,
+      designation: req.body.designation,
+      city: req.body.city,
+      tags: req.body.tags,
+      groups: req.body.groups,
+      customFields: req.body.customFields,
       createdBy: req.user?.userId,
     });
     return sendSuccess(res, 'Contact created', contact, 201);
@@ -65,7 +73,22 @@ export const createContact = async (req: AuthRequest, res: Response, next: NextF
 export const updateContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const contact = await Contact.findByIdAndUpdate(id, req.body, { new: true });
+    const { name, email, phone, company, designation, city, tags, groups, isFavorite, isBlacklisted, customFields } = req.body;
+    const allowedUpdates: any = {};
+    if (name !== undefined) allowedUpdates.name = name;
+    if (email !== undefined) allowedUpdates.email = email;
+    if (phone !== undefined) allowedUpdates.phone = phone;
+    if (company !== undefined) allowedUpdates.company = company;
+    if (designation !== undefined) allowedUpdates.designation = designation;
+    if (city !== undefined) allowedUpdates.city = city;
+    if (tags !== undefined) allowedUpdates.tags = tags;
+    if (groups !== undefined) allowedUpdates.groups = groups;
+    if (isFavorite !== undefined) allowedUpdates.isFavorite = isFavorite;
+    if (isBlacklisted !== undefined) allowedUpdates.isBlacklisted = isBlacklisted;
+    if (customFields !== undefined) allowedUpdates.customFields = customFields;
+
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, createdBy: req.user.userId };
+    const contact = await Contact.findOneAndUpdate(filter, allowedUpdates, { new: true });
     if (!contact) return sendError(res, 'Contact not found', 404);
     return sendSuccess(res, 'Contact updated', contact);
   } catch (error) {
@@ -110,7 +133,13 @@ export const listDeals = async (req: AuthRequest, res: Response, next: NextFunct
 export const createDeal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const deal = await Deal.create({
-      ...req.body,
+      title: req.body.title,
+      value: req.body.value,
+      contactId: req.body.contactId,
+      pipelineId: req.body.pipelineId,
+      stageId: req.body.stageId,
+      expectedCloseDate: req.body.expectedCloseDate,
+      probability: req.body.probability,
       createdBy: req.user?.userId,
     });
     return sendSuccess(res, 'Deal created', deal, 201);
@@ -143,7 +172,12 @@ export const listTasks = async (req: AuthRequest, res: Response, next: NextFunct
 export const createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const task = await Task.create({
-      ...req.body,
+      title: req.body.title,
+      description: req.body.description,
+      contactId: req.body.contactId,
+      dueDate: req.body.dueDate,
+      priority: req.body.priority,
+      status: req.body.status,
       createdBy: req.user?.userId,
     });
     return sendSuccess(res, 'Task created', task, 201);
@@ -156,7 +190,9 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
 export const createNote = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const note = await Note.create({
-      ...req.body,
+      text: req.body.text,
+      contactId: req.body.contactId,
+      type: req.body.type,
       createdBy: req.user?.userId,
     });
     return sendSuccess(res, 'Note created', note, 201);
