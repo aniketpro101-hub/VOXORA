@@ -24,7 +24,7 @@ const router = Router();
 
 router.get('/setup-status', getSetupStatus);
 router.post('/setup', authRateLimiter, validate(setupSchema), setup);
-router.post('/register', validate(registerSchema), register);
+router.post('/register', authRateLimiter, validate(registerSchema), register);
 router.post('/login', authRateLimiter, validate(loginSchema), login);
 router.post('/otp/request', authRateLimiter, requestOTP);
 router.post('/otp/verify', authRateLimiter, verifyOTP);

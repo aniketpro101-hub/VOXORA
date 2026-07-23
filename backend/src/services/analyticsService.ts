@@ -10,20 +10,23 @@ export class AnalyticsService {
    * 1. Generates top-level KPI metrics for main analytics dashboard (100% REAL DATA)
    */
   static async getDashboardStats(userId: string) {
-    const totalSent = await MessageLog.countDocuments({ status: { $in: ['sent', 'delivered', 'read'] } });
-    const totalDelivered = await MessageLog.countDocuments({ status: { $in: ['delivered', 'read'] } });
-    const totalRead = await MessageLog.countDocuments({ status: 'read' });
-    const totalFailed = await MessageLog.countDocuments({ status: 'failed' });
-    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true });
+    const filter = userId ? { createdBy: userId } : {};
+    const ownerFilter = userId ? { owner: userId } : {};
 
-    const totalContacts = await Contact.countDocuments({});
+    const totalSent = await MessageLog.countDocuments({ status: { $in: ['sent', 'delivered', 'read'] }, ...filter });
+    const totalDelivered = await MessageLog.countDocuments({ status: { $in: ['delivered', 'read'] }, ...filter });
+    const totalRead = await MessageLog.countDocuments({ status: 'read', ...filter });
+    const totalFailed = await MessageLog.countDocuments({ status: 'failed', ...filter });
+    const totalReplied = await MessageLog.countDocuments({ 'reply.received': true, ...filter });
+
+    const totalContacts = await Contact.countDocuments(filter);
 
     const deliveryRate = totalSent > 0 ? ((totalDelivered / totalSent) * 100).toFixed(1) : '0';
     const readRate = totalDelivered > 0 ? ((totalRead / totalDelivered) * 100).toFixed(1) : '0';
     const replyRate = totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) : '0';
 
-    // Fetch real top performing campaigns from MongoDB
-    const topCampaignsRaw = await Campaign.find().sort({ createdAt: -1 }).limit(5);
+    // Fetch real top performing campaigns from MongoDB for this user
+    const topCampaignsRaw = await Campaign.find(ownerFilter).sort({ createdAt: -1 }).limit(5);
     const topCampaigns = topCampaignsRaw.map((c) => {
       const sent = c.stats?.sentCount || 0;
       const replied = c.stats?.repliedCount || 0;

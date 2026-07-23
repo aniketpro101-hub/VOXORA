@@ -63,15 +63,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       return sendError(res, 'An account with this email already exists. Please log in instead.', 400);
     }
 
-    const userCount = await User.countDocuments();
-    const role = userCount === 0 ? 'admin' : 'agent';
-
     const user = await User.create({
       name,
       email,
       password,
       phone,
-      role,
+      role: 'agent',
     });
 
     const accessToken = generateAccessToken({
@@ -95,7 +92,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
     return sendSuccess(
       res,
-      `User registered successfully as ${role}`,
+      `User registered successfully as ${user.role}`,
       {
         user: {
           id: user._id,

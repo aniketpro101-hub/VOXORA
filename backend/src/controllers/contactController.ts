@@ -89,7 +89,7 @@ export const createContact = async (req: AuthRequest, res: Response, next: NextF
       tags,
       groups,
       source: 'manual',
-      createdBy: req.user?.userId || '650000000000000000000001',
+      createdBy: req.user?.userId,
     });
 
     return sendSuccess(res, 'Contact created successfully', contact, 201);
@@ -104,7 +104,21 @@ export const createContact = async (req: AuthRequest, res: Response, next: NextF
 export const updateContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const contact = await Contact.findByIdAndUpdate(id, req.body, { new: true });
+    const { name, email, company, designation, city, tags, groups, isFavorite, isBlacklisted, customFields } = req.body;
+
+    const allowedUpdates: any = {};
+    if (name !== undefined) allowedUpdates.name = name;
+    if (email !== undefined) allowedUpdates.email = email;
+    if (company !== undefined) allowedUpdates.company = company;
+    if (designation !== undefined) allowedUpdates.designation = designation;
+    if (city !== undefined) allowedUpdates.city = city;
+    if (tags !== undefined) allowedUpdates.tags = tags;
+    if (groups !== undefined) allowedUpdates.groups = groups;
+    if (isFavorite !== undefined) allowedUpdates.isFavorite = isFavorite;
+    if (isBlacklisted !== undefined) allowedUpdates.isBlacklisted = isBlacklisted;
+    if (customFields !== undefined) allowedUpdates.customFields = customFields;
+
+    const contact = await Contact.findByIdAndUpdate(id, allowedUpdates, { new: true });
     if (!contact) return sendError(res, 'Contact not found', 404);
 
     return sendSuccess(res, 'Contact updated', contact);

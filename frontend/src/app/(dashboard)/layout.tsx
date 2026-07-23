@@ -16,10 +16,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (res.data?.data) {
           setUser(res.data.data);
         } else {
-          setUser({ id: 'admin', name: 'Aniket Samant', email: 'aniket@voxora.com', role: 'admin' });
+          window.location.href = '/login';
         }
       } catch (err) {
-        setUser({ id: 'admin', name: 'Aniket Samant', email: 'aniket@voxora.com', role: 'admin' });
+        window.location.href = '/login';
       }
     };
 

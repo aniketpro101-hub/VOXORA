@@ -10,16 +10,17 @@ import {
   checkDuplicates,
 } from '../controllers/blacklistController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { managerAndAbove } from '../middleware/rbac.js';
 
 const router = Router();
 
 router.use(authenticateToken);
 
 router.get('/', listBlacklist);
-router.post('/', banNumber);
-router.post('/bulk-ban', bulkBan);
-router.post('/bulk-unban', bulkUnban);
-router.delete('/:phone', unbanNumber);
+router.post('/', managerAndAbove, banNumber);
+router.post('/bulk-ban', managerAndAbove, bulkBan);
+router.post('/bulk-unban', managerAndAbove, bulkUnban);
+router.delete('/:phone', managerAndAbove, unbanNumber);
 
 router.get('/keywords', listKeywords);
 router.post('/keywords', addKeyword);
