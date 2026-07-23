@@ -59,12 +59,18 @@ export const listAPIKeys = async (req: AuthRequest, res: Response, next: NextFun
 export const createAPIKey = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const rawKey = `vxr_live_${crypto.randomBytes(16).toString('hex')}`;
+    const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
     const apiKey = await APIKey.create({
       name: req.body.name || 'Production API Key',
-      key: rawKey,
+      key: hashedKey,
       createdBy: req.user?.userId,
     });
-    return sendSuccess(res, 'API key generated', apiKey, 201);
+    return sendSuccess(res, 'API key generated successfully (save raw key now, it will not be shown again)', {
+      _id: apiKey._id,
+      name: apiKey.name,
+      rawKey,
+      createdAt: apiKey.createdAt,
+    }, 201);
   } catch (error) {
     next(error);
   }

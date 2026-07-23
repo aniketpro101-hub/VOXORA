@@ -15,7 +15,7 @@ const AutoNameConfigSchema = new Schema<IAutoNameConfig>(
     currentNumber: { type: Number, default: 0 },
     paddingDigits: { type: Number, default: 3 },
     separator: { type: String, default: '' },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', default: '650000000000000000000001' },
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

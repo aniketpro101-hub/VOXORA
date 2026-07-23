@@ -25,7 +25,7 @@ export const pairingCodeSchema = z.object({
 export const createInstance = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { name, loginMethod, phoneNumber, dailyLimit } = req.body;
-    const userId = req.user?.userId || '650000000000000000000001';
+    const userId = req.user?.userId;
 
     const instanceId = `voxora_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const webhookUrl = `${req.protocol}://${req.get('host')}/api/webhook`;
@@ -116,8 +116,8 @@ export const getPairingCode = async (req: AuthRequest, res: Response, next: Next
 
 export const listInstances = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user?.userId || '650000000000000000000001';
-    const instances = await Instance.find({ owner: userId }).sort({ createdAt: -1 });
+    const filter = req.user?.role === 'admin' || !req.user?.userId ? {} : { owner: req.user.userId };
+    const instances = await Instance.find(filter).sort({ createdAt: -1 });
 
     const liveInstances = await Promise.all(
       instances.map(async (inst) => {

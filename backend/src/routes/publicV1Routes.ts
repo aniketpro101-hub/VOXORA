@@ -4,16 +4,27 @@ import { MessageService } from '../services/messageService.js';
 import { Contact } from '../models/Contact.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
+import crypto from 'crypto';
+
 const router = Router();
 
-// Middleware: Validate API Key
-const validateAPIKey = async (req: Request, res: Response, next: any) => {
-  const apiKeyHeader = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+interface APIKeyRequest extends Request {
+  apiUserOwner?: any;
+}
+
+// Middleware: Validate API Key (Hashed or Legacy Plaintext)
+const validateAPIKey = async (req: APIKeyRequest, res: Response, next: any) => {
+  const apiKeyHeader = (req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '')) as string;
   if (!apiKeyHeader) {
     return sendError(res, 'API key required in X-API-KEY header', 401);
   }
 
-  const keyRecord = await APIKey.findOne({ key: apiKeyHeader, isActive: true });
+  const hashedKey = crypto.createHash('sha256').update(apiKeyHeader).digest('hex');
+  const keyRecord = await APIKey.findOne({
+    $or: [{ key: hashedKey }, { key: apiKeyHeader }],
+    isActive: true,
+  });
+
   if (!keyRecord) {
     return sendError(res, 'Invalid or disabled API key', 401);
   }
@@ -22,6 +33,7 @@ const validateAPIKey = async (req: Request, res: Response, next: any) => {
   keyRecord.totalCalls += 1;
   await keyRecord.save();
 
+  req.apiUserOwner = keyRecord.createdBy;
   next();
 };
 
@@ -42,10 +54,11 @@ router.post('/send-message', async (req: Request, res: Response) => {
   }
 });
 
-// Contacts API
-router.get('/contacts', async (req: Request, res: Response) => {
+// Contacts API (Scoped to API Key Owner)
+router.get('/contacts', async (req: APIKeyRequest, res: Response) => {
   try {
-    const contacts = await Contact.find().limit(50);
+    const filter = req.apiUserOwner ? { createdBy: req.apiUserOwner } : {};
+    const contacts = await Contact.find(filter).limit(50);
     return sendSuccess(res, 'Contacts retrieved', contacts);
   } catch (error) {
     return sendError(res, 'Failed to fetch contacts', 500);

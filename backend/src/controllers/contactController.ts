@@ -118,8 +118,9 @@ export const updateContact = async (req: AuthRequest, res: Response, next: NextF
     if (isBlacklisted !== undefined) allowedUpdates.isBlacklisted = isBlacklisted;
     if (customFields !== undefined) allowedUpdates.customFields = customFields;
 
-    const contact = await Contact.findByIdAndUpdate(id, allowedUpdates, { new: true });
-    if (!contact) return sendError(res, 'Contact not found', 404);
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, createdBy: req.user.userId };
+    const contact = await Contact.findOneAndUpdate(filter, allowedUpdates, { new: true });
+    if (!contact) return sendError(res, 'Contact not found or access denied', 404);
 
     return sendSuccess(res, 'Contact updated', contact);
   } catch (error) {
@@ -133,7 +134,10 @@ export const updateContact = async (req: AuthRequest, res: Response, next: NextF
 export const deleteContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    await Contact.findByIdAndDelete(id);
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, createdBy: req.user.userId };
+    const deleted = await Contact.findOneAndDelete(filter);
+    if (!deleted) return sendError(res, 'Contact not found or access denied', 404);
+
     return sendSuccess(res, 'Contact deleted');
   } catch (error) {
     next(error);
@@ -146,8 +150,9 @@ export const deleteContact = async (req: AuthRequest, res: Response, next: NextF
 export const toggleFavorite = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const contact = await Contact.findById(id);
-    if (!contact) return sendError(res, 'Contact not found', 404);
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, createdBy: req.user.userId };
+    const contact = await Contact.findOne(filter);
+    if (!contact) return sendError(res, 'Contact not found or access denied', 404);
 
     contact.isFavorite = !contact.isFavorite;
     await contact.save();
@@ -166,8 +171,9 @@ export const addContactNote = async (req: AuthRequest, res: Response, next: Next
     const { id } = req.params;
     const { text } = req.body;
 
-    const contact = await Contact.findById(id);
-    if (!contact) return sendError(res, 'Contact not found', 404);
+    const filter: any = req.user?.role === 'admin' || !req.user?.userId ? { _id: id } : { _id: id, createdBy: req.user.userId };
+    const contact = await Contact.findOne(filter);
+    if (!contact) return sendError(res, 'Contact not found or access denied', 404);
 
     if (!contact.contactNotes) contact.contactNotes = [];
     contact.contactNotes.unshift({ text, createdBy: req.user?.userId || 'Agent', createdAt: new Date() });

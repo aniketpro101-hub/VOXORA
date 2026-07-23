@@ -19,7 +19,8 @@ export class SchedulerService {
 
         for (const c of dueCampaigns) {
           logger.info(`[Scheduler] Triggering scheduled campaign ${c.name} (${c._id})`);
-          await CampaignService.startCampaign(c._id.toString(), c.owner?.toString() || '650000000000000000000001');
+          const ownerId = c.owner ? c.owner.toString() : c.createdBy ? c.createdBy.toString() : '';
+          await CampaignService.startCampaign(c._id.toString(), ownerId);
         }
       } catch (err: any) {
         logger.error(`[Scheduler Error] ${err.message}`);

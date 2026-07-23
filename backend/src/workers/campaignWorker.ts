@@ -112,10 +112,10 @@ export function initCampaignWorker() {
           await campaign.save();
           await instance.save();
 
-          // Socket.IO Progress Broadcast
+          // Socket.IO Progress Broadcast (Room Targeted)
           const io = getSocketIO();
           if (io) {
-            io.emit(`campaign:${campaign._id}:progress`, {
+            io.to(`campaign:${campaign._id}`).emit(`campaign:${campaign._id}:progress`, {
               sentCount: campaign.sentCount,
               totalContacts: campaign.totalContacts,
               recentPhone: dbJob.phone,

@@ -43,7 +43,7 @@ const ImportHistorySchema = new Schema<IImportHistory>(
         error: { type: String },
       },
     ],
-    importedBy: { type: Schema.Types.ObjectId, ref: 'User', default: '650000000000000000000001' },
+    importedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );
