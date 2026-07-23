@@ -30,13 +30,18 @@ export default function WhatsAppInstancesPage() {
 
   // Real-time socket updates for QR code & status
   useEffect(() => {
-    if (!activeInstance?._id) return;
+    if (!activeInstance) return;
 
     const socket = getSocket();
-    socket.emit('join:instance', activeInstance._id);
+    if (activeInstance._id) socket.emit('join:instance', activeInstance._id);
+    if (activeInstance.instanceId) socket.emit('join:instance', activeInstance.instanceId);
 
-    const handleQrUpdated = (data: { instanceId: string; qrCode: string }) => {
-      if (data.instanceId === activeInstance._id || data.instanceId === activeInstance.instanceId) {
+    const handleQrUpdated = (data: { id?: string; instanceId?: string; qrCode: string }) => {
+      if (
+        data.id === activeInstance._id ||
+        data.instanceId === activeInstance._id ||
+        data.instanceId === activeInstance.instanceId
+      ) {
         if (data.qrCode) {
           setQrCode(data.qrCode);
           setStatus('ready');
@@ -44,8 +49,12 @@ export default function WhatsAppInstancesPage() {
       }
     };
 
-    const handleStatusChanged = (data: { instanceId: string; status: string }) => {
-      if (data.instanceId === activeInstance._id || data.instanceId === activeInstance.instanceId) {
+    const handleStatusChanged = (data: { id?: string; instanceId?: string; status: string }) => {
+      if (
+        data.id === activeInstance._id ||
+        data.instanceId === activeInstance._id ||
+        data.instanceId === activeInstance.instanceId
+      ) {
         if (data.status === 'open') {
           setStatus('connected');
           toast.success('✅ WhatsApp Connected Successfully!');
@@ -61,7 +70,8 @@ export default function WhatsAppInstancesPage() {
     return () => {
       socket.off('qrCode:updated', handleQrUpdated);
       socket.off('status:changed', handleStatusChanged);
-      socket.emit('leave:instance', activeInstance._id);
+      if (activeInstance._id) socket.emit('leave:instance', activeInstance._id);
+      if (activeInstance.instanceId) socket.emit('leave:instance', activeInstance.instanceId);
     };
   }, [activeInstance]);
 

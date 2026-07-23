@@ -76,8 +76,9 @@ export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunct
       BaileysEngine.initSession(instance.instanceId, instance.status !== 'open').catch(() => {});
     }
 
+    const liveQr = BaileysEngine.getQRCode(instance.instanceId);
     const qrData = await EvolutionService.getQRCode(instance.instanceId);
-    const qrCode = qrData.qrCode || instance.qrCode || BaileysEngine.getQRCode(instance.instanceId);
+    const qrCode = liveQr || qrData.qrCode || instance.qrCode || '';
 
     if (qrCode && qrCode !== instance.qrCode) {
       instance.qrCode = qrCode;
@@ -86,7 +87,7 @@ export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunct
     }
 
     return sendSuccess(res, 'QR Code retrieved', {
-      qrCode: instance.qrCode || qrCode || '',
+      qrCode: qrCode || instance.qrCode || '',
       status: instance.status || 'connecting',
       expiresInSeconds: 20,
     });
