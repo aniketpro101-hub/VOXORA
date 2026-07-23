@@ -1,0 +1,28 @@
+{
+  "name": "voxora-desktop",
+  "version": "1.0.0",
+  "description": "VOXORA - World's Best Bulk WhatsApp Automation Software",
+  "main": "main.js",
+  "author": "Mr. Aniket Samant (@actasiff)",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.voxora.desktop",
+    "productName": "VOXORA",
+    "copyright": "Copyright © 2025 Mr. Aniket Samant",
+    "win": {
+      "target": ["nsis"],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VOXORA"
+    }
+  }
+}

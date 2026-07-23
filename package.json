@@ -1,0 +1,78 @@
+{
+  "name": "voxora",
+  "version": "1.0.0",
+  "description": "World's Best Bulk WhatsApp Automation & CRM Platform",
+  "author": {
+    "name": "Mr. Aniket Samant",
+    "email": "contact@voxora.app",
+    "url": "https://t.me/actasiff"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "electron:start": "electron .",
+    "electron:build": "electron-builder --win nsis",
+    "build:all": "cd backend && npm run build && cd ../frontend && npm run build"
+  },
+  "build": {
+    "appId": "com.voxora.app",
+    "productName": "VOXORA",
+    "copyright": "Copyright © 2026 Mr. Aniket Samant (@actasiff)",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "build/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist",
+        "to": "backend"
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules"
+      },
+      {
+        "from": "backend/package.json",
+        "to": "backend/package.json"
+      },
+      {
+        "from": "frontend/out",
+        "to": "frontend/out"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "Mr. Aniket Samant",
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "VOXORA",
+      "license": "build/license.txt",
+      "allowElevation": true,
+      "runAfterFinish": true,
+      "menuCategory": "VOXORA",
+      "uninstallDisplayName": "VOXORA - Bulk WhatsApp Software",
+      "artifactName": "VOXORA-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
