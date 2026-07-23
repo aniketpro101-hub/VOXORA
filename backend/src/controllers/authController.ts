@@ -42,21 +42,14 @@ export const changePasswordSchema = z.object({
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, email, password, phone } = req.body;
+    const cleanEmail = email.toLowerCase().trim();
 
-    let existingUser = null;
-    try {
-      existingUser = await User.findOne({ email });
-    } catch (e) {}
-
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) {
-      return sendError(res, 'User with this email already exists', 400);
+      return sendError(res, 'An account with this email already exists. Please log in instead.', 400);
     }
 
-    let userCount = 0;
-    try {
-      userCount = await User.countDocuments();
-    } catch (e) {}
-
+    const userCount = await User.countDocuments();
     const role = userCount === 0 ? 'admin' : 'agent';
 
     const user = await User.create({

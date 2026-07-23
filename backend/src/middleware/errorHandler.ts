@@ -3,21 +3,25 @@ import { AppError, sendError } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 
 export const errorHandler = (
-  err: Error | AppError,
+  err: any,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   logger.error(`[Error] ${err.message}`, { stack: err.stack, path: req.path });
 
+  if (err.code === 11000) {
+    return sendError(res, 'An account with this email already exists. Please log in instead.', 400);
+  }
+
   if (err instanceof AppError) {
     return sendError(res, err.message, err.statusCode);
   }
 
-  const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
+  const statusCode = res.statusCode !== 200 ? res.statusCode : (err.statusCode || 500);
   return sendError(
     res,
-    process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    err.message || 'Internal server error',
     statusCode
   );
 };
