@@ -17,7 +17,8 @@ export const validate = (schema: AnyZodObject) => {
           field: err.path.slice(1).join('.'),
           message: err.message,
         }));
-        return sendError(res, 'Validation error', 400, formattedErrors);
+        const details = formattedErrors.map((e) => `${e.field ? e.field + ': ' : ''}${e.message}`).join(', ');
+        return sendError(res, `Validation error: ${details}`, 400, formattedErrors);
       }
       return sendError(res, 'Invalid request data', 400);
     }

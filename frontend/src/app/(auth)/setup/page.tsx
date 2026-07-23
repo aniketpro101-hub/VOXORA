@@ -54,7 +54,7 @@ export default function SetupPage() {
       toast.success(`Super Admin Account Created! Welcome, ${user.name}!`);
       router.push('/dashboard');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Setup failed. Please try again.';
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Setup failed. Please try again.';
       toast.error(msg);
     } finally {
       setIsLoading(false);
