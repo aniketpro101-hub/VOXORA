@@ -187,7 +187,7 @@ const CampaignSchema: Schema<ICampaign> = new Schema(
         endTime: { type: String, default: '08:00' },
       },
     },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: '650000000000000000000001' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

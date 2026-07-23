@@ -168,7 +168,7 @@ const ContactSchema: Schema<IContact> = new Schema(
     customFields: { type: Schema.Types.Mixed, default: {} },
 
     importBatchId: { type: String, default: '' },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: '650000000000000000000001' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

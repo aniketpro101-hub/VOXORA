@@ -29,7 +29,12 @@ router.post('/multiple', uploadMiddleware.array('files', 10), (req: Request, res
 router.delete('/:filePath(*)', (req: Request, res: Response) => {
   try {
     const relativePath = req.params.filePath;
-    const fullPath = path.join(process.cwd(), relativePath);
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    const fullPath = path.resolve(process.cwd(), relativePath);
+
+    if (!fullPath.startsWith(uploadsDir)) {
+      return sendError(res, 'Access denied: Cannot delete files outside uploads directory', 403);
+    }
 
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);

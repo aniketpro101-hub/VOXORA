@@ -17,7 +17,7 @@ export const listContacts = async (req: AuthRequest, res: Response, next: NextFu
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
 
-    const query: any = {};
+    const query: any = req.user?.role === 'admin' || !req.user?.userId ? {} : { createdBy: req.user.userId };
     if (search) {
       query.$or = [{ name: new RegExp(search, 'i') }, { phone: new RegExp(search, 'i') }];
     }

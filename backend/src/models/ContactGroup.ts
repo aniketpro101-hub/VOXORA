@@ -32,7 +32,7 @@ const ContactGroupSchema = new Schema<IContactGroup>(
     whatsappGroupId: { type: String, default: '' },
     whatsappGroupName: { type: String, default: '' },
     isDefault: { type: Boolean, default: false },
-    owner: { type: Schema.Types.ObjectId, ref: 'User', default: '650000000000000000000001' },
+    owner: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

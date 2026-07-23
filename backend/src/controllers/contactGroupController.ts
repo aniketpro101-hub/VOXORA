@@ -7,7 +7,8 @@ import { AuthRequest } from '../middleware/auth.js';
 
 export const getContactGroups = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const groups = await ContactGroup.find().sort({ createdAt: -1 });
+    const filter = req.user?.role === 'admin' || !req.user?.userId ? {} : { owner: req.user.userId };
+    const groups = await ContactGroup.find(filter).sort({ createdAt: -1 });
     return sendSuccess(res, 'Contact groups retrieved', groups);
   } catch (error) {
     next(error);
@@ -24,7 +25,7 @@ export const createContactGroup = async (req: AuthRequest, res: Response, next: 
       description: description || '',
       contacts: [],
       contactCount: 0,
-      owner: req.user?.userId || '650000000000000000000001',
+      owner: req.user?.userId,
     });
 
     return sendSuccess(res, 'Contact group created', group, 201);
