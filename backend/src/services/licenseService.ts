@@ -5,7 +5,7 @@ import { LicenseKey, ILicenseKey } from '../models/LicenseKey.js';
 import { KeyGenService } from './keyGenService.js';
 import { logger } from '../utils/logger.js';
 
-const ENCRYPTION_SECRET = process.env.LICENSE_SECRET || 'voxora_master_license_encryption_key_2026';
+const ENCRYPTION_SECRET = process.env.LICENSE_SECRET || 'voxora_dev_license_secret';
 
 export class LicenseService {
   /**

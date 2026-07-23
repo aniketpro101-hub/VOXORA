@@ -9,19 +9,15 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (token) {
-    try {
-      const decoded = verifyAccessToken(token);
-      req.user = decoded;
-      return next();
-    } catch (error) {}
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Authentication required. Please log in.' });
   }
 
-  // Local Desktop Mode: Auto-assign Super Admin rights with a valid 24-char ObjectId
-  req.user = {
-    userId: '650000000000000000000001',
-    email: 'aniket@voxora.com',
-    role: 'admin',
-  };
-  next();
+  try {
+    const decoded = verifyAccessToken(token);
+    req.user = decoded;
+    return next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token. Please log in again.' });
+  }
 };

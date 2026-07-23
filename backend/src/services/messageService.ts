@@ -204,7 +204,7 @@ export class MessageService {
    * 9. Send Media with Buttons
    */
   static async sendMediaWithButtons(instanceId: string, phone: string, mediaUrl: string = '', caption: string = '', buttons: any[] = [], options: any = {}) {
-    return this.sendImageMessage(instanceId, phone, mediaUrl, caption, options);
+    return this.sendImageMessage(instanceId, phone, mediaUrl, caption, { ...options, buttons });
   }
 
   /**
@@ -218,7 +218,8 @@ export class MessageService {
    * 11. Verify Phone Number Exists on WhatsApp
    */
   static async verifyNumber(instanceId: string, phone: string) {
-    return { exists: true, jid: `${this.cleanPhone(phone)}@s.whatsapp.net` };
+    const exists = await BaileysEngine.checkOnWhatsApp(instanceId, phone);
+    return { exists, jid: `${this.cleanPhone(phone)}@s.whatsapp.net` };
   }
 
   /**

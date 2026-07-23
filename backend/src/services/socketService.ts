@@ -46,9 +46,10 @@ export const getSocketIO = getIO;
 
 export const emitInstanceEvent = (event: string, payload: any) => {
   if (io) {
-    io.of('/instances').emit(event, payload);
     if (payload?.instanceId) {
       io.of('/instances').to(`instance:${payload.instanceId}`).emit(event, payload);
+    } else {
+      io.of('/instances').emit(event, payload);
     }
   }
 };

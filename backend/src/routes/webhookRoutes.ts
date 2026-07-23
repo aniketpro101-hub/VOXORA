@@ -3,9 +3,17 @@ import { AutoReplyService } from '../services/autoReplyService.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
 router.post('/evolution', async (req: Request, res: Response) => {
   try {
+    if (WEBHOOK_SECRET) {
+      const providedSecret = req.headers['x-webhook-secret'] || req.query.secret;
+      if (providedSecret !== WEBHOOK_SECRET) {
+        return res.status(403).json({ status: 'forbidden', message: 'Invalid webhook secret' });
+      }
+    }
+
     const { event, instance, data } = req.body;
     logger.info(`[Webhook] Event: ${event} from Instance: ${instance}`);
 

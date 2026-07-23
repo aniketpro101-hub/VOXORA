@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
 
 export const connectDB = async (): Promise<void> => {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://admin:voxora_secure_password@localhost:27017/voxora?authSource=admin';
+  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/voxora';
 
   try {
     // 1. Try local MongoDB first with 1.5s timeout

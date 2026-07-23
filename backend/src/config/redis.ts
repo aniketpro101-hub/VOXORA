@@ -3,7 +3,7 @@ import { logger } from '../utils/logger.js';
 
 const redisHost = process.env.REDIS_HOST || 'localhost';
 const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
-const redisPassword = process.env.REDIS_PASSWORD || 'voxora_redis_password';
+const redisPassword = process.env.REDIS_PASSWORD || undefined;
 
 export const redis = new Redis({
   host: redisHost,

@@ -5,6 +5,9 @@ import { Instance } from '../models/Instance.js';
 import { MessageLog } from '../models/MessageLog.js';
 import { BaileysEngine } from './baileysEngine.js';
 import ContactInfoFormatter from '../utils/contactInfoFormatter.js';
+import { BlacklistEngine } from './blacklistService.js';
+import { AntibanEngine } from './antibanService.js';
+import { AntibanSettings } from '../models/AntibanSettings.js';
 import { logger } from '../utils/logger.js';
 
 export class CampaignService {
@@ -124,7 +127,22 @@ export class CampaignService {
       return;
     }
 
-    const instanceIdStr = campaign.instanceIds?.[0]?.toString() || '650000000000000000000001';
+    // Resolve actual Baileys socket instanceId string
+    let instanceIdStr = '';
+    if (campaign.instanceIds && campaign.instanceIds.length > 0) {
+      const instDoc = await Instance.findById(campaign.instanceIds[0]);
+      instanceIdStr = instDoc?.instanceId || (typeof campaign.instanceIds[0] === 'string' ? campaign.instanceIds[0] : '');
+    }
+    if (!instanceIdStr) {
+      const activeInst = await Instance.findOne({ status: 'connected' });
+      instanceIdStr = activeInst?.instanceId || '';
+    }
+    if (!instanceIdStr) {
+      logger.error(`[Campaign Engine] No valid connected WhatsApp instance found for campaign ${campaignId}`);
+      campaign.status = 'failed';
+      await campaign.save();
+      return;
+    }
     
     // PRIORITY ORDER FOR MESSAGE CONTENT (Never fall back to campaign.name!)
     const messageTemplate =
@@ -161,6 +179,14 @@ export class CampaignService {
       // Skip if already sent
       const existingLog = await MessageLog.findOne({ campaignId: campaign._id, recipientPhone: c.phone, status: { $in: ['sent', 'delivered'] } });
       if (existingLog) continue;
+
+      // Check Blacklist
+      const blacklistCheck = await BlacklistEngine.checkNumber(c.phone);
+      if (blacklistCheck.isBanned) {
+        logger.info(`[Campaign Engine] Skipping blacklisted contact: ${c.phone}`);
+        await Campaign.updateOne({ _id: campaignId }, { $inc: { failedCount: 1, 'stats.failedCount': 1 } });
+        continue;
+      }
 
       let processedText = this.parseSpinTax(messageTemplate);
 
@@ -276,8 +302,19 @@ export class CampaignService {
         await currentCampaign.save();
       }
 
-      // Anti-ban delay between messages (1.5s - 3s)
-      const delayMs = Math.floor(Math.random() * 1500) + 1500;
+      // Anti-ban delay driven by user settings (default: 20s - 45s safe interval)
+      let minDelay = 20;
+      let maxDelay = 45;
+      try {
+        const abSet = await AntibanSettings.findOne();
+        if (abSet) {
+          minDelay = abSet.minDelay ?? 20;
+          maxDelay = abSet.maxDelay ?? 45;
+        }
+      } catch (e) {}
+
+      const delayMs = AntibanEngine.calculateRandomDelay({ minDelay, maxDelay });
+      logger.info(`[Campaign Engine] Anti-ban delay: ${(delayMs / 1000).toFixed(1)}s before next message`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 

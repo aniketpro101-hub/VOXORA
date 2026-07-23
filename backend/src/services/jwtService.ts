@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'voxora_super_secret_jwt_key_2026_aniket_samant';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'voxora_super_secret_refresh_key_2026_actasiff';
+const JWT_SECRET = process.env.JWT_SECRET || 'voxora_jwt_secret_dev_only_change_in_production';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'voxora_refresh_secret_dev_only_change_in_production';
 
 export interface TokenPayload {
   userId: string;

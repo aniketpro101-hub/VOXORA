@@ -115,26 +115,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       user = await User.findOne({ email }).select('+password');
     } catch (e) {}
 
-    // Auto-seed default admin if database is empty or credentials match admin@voxora.com
     if (!user) {
-      let count = 0;
-      try {
-        count = await User.countDocuments();
-      } catch (e) {}
-
-      if (count === 0 && (email === 'admin@voxora.com' || email === 'aniket@voxora.com')) {
-        user = await User.create({
-          name: 'Aniket Samant',
-          email,
-          password: password || 'Admin@1234',
-          role: 'admin',
-          isActive: true,
-        });
-      }
-    }
-
-    if (!user) {
-      return sendError(res, 'Invalid credentials. Please register your admin account.', 401);
+      return sendError(res, 'Invalid credentials', 401);
     }
 
     if (!user.isActive) {
@@ -199,6 +181,19 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
+    });
+
+    const newRefreshToken = generateRefreshToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return sendSuccess(res, 'Token refreshed', { accessToken: newAccessToken });
@@ -273,6 +268,71 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
     await user.save();
 
     return sendSuccess(res, 'Password changed successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSetupStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userCount = await User.countDocuments();
+    return sendSuccess(res, 'Setup status', { isSetupRequired: userCount === 0 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const setup = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userCount = await User.countDocuments();
+    if (userCount > 0) {
+      return sendError(res, 'Setup already completed. Please log in.', 400);
+    }
+
+    const { name, email, password, phone } = req.body;
+    const user = await User.create({
+      name,
+      email,
+      password,
+      phone,
+      role: 'admin',
+      isActive: true,
+    });
+
+    const accessToken = generateAccessToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return sendSuccess(
+      res,
+      'Super Admin account created successfully!',
+      {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+        },
+        accessToken,
+      },
+      201
+    );
   } catch (error) {
     next(error);
   }

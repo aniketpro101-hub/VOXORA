@@ -69,7 +69,7 @@ const InstanceSchema: Schema<IInstance> = new Schema(
     blockReason: { type: String, default: '' },
     totalMessagesSent: { type: Number, default: 0 },
     successRate: { type: Number, default: 100 },
-    owner: { type: Schema.Types.ObjectId, ref: 'User', default: () => new mongoose.Types.ObjectId('650000000000000000000001') },
+    owner: { type: Schema.Types.ObjectId, ref: 'User' },
     webhookUrl: { type: String, default: '' },
   },
   { timestamps: true }

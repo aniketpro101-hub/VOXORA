@@ -160,7 +160,7 @@ const CampaignSchema: Schema<ICampaign> = new Schema(
       },
     ],
     currentDripStep: { type: Number, default: 0 },
-    instanceIds: [{ type: Schema.Types.Mixed }],
+    instanceIds: [{ type: Schema.Types.ObjectId, ref: 'Instance' }],
     currentInstanceIndex: { type: Number, default: 0 },
     batchSize: { type: Number, default: 50 },
     totalBatches: { type: Number, default: 1 },

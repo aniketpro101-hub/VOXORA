@@ -43,9 +43,23 @@ const server = http.createServer(app);
 initSocketServer(server);
 
 // Security & Utility Middlewares
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS ||
+  'http://localhost:3000,http://localhost:4000,https://voxora.roasbodhi.in'
+)
+  .split(',')
+  .map((s) => s.trim());
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS policy: Access blocked for this origin'));
+      }
+    },
     credentials: true,
   })
 );

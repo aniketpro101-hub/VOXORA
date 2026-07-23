@@ -181,14 +181,14 @@ export class BaileysEngine {
 
   static async checkOnWhatsApp(instanceId: string, phone: string): Promise<boolean> {
     const socket = this.getSession(instanceId);
-    if (!socket) return true;
+    if (!socket) return false;
     try {
       const cleanNumber = phone.replace(/[^0-9]/g, '');
       const jid = `${cleanNumber}@s.whatsapp.net`;
       const [result] = await socket.onWhatsApp(jid);
       return !!result?.exists;
     } catch (err) {
-      return true;
+      return false;
     }
   }
 
