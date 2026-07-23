@@ -46,10 +46,10 @@ export class OTPService {
 
     const otpMessage = `🔑 *VOXORA Verification Code*\n\nYour 6-digit OTP is: *${code}*\n\nThis code will expire in 5 minutes. Do not share this code with anyone.`;
 
-    // Find any connected WhatsApp instance to dispatch OTP
+    // Find any open WhatsApp instance to dispatch OTP
     let sentViaWhatsApp = false;
     try {
-      const activeInstance = await Instance.findOne({ status: 'connected' });
+      const activeInstance = await Instance.findOne({ status: 'open' });
       if (activeInstance?.instanceId) {
         await BaileysEngine.sendMessage(activeInstance.instanceId, cleanPhone, otpMessage);
         sentViaWhatsApp = true;

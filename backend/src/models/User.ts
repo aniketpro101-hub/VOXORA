@@ -21,7 +21,7 @@ const UserSchema: Schema<IUser> = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
-    password: { type: String, required: false, select: false },
+    password: { type: String, required: true, select: false },
     role: {
       type: String,
       enum: ['admin', 'manager', 'agent', 'viewer'],
@@ -36,10 +36,10 @@ const UserSchema: Schema<IUser> = new Schema(
 );
 
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   try {
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password!, salt);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (err: any) {
     next(err);

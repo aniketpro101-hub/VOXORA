@@ -42,7 +42,8 @@ export class BaileysEngine {
             );
             if (updated) {
               emitInstanceEvent('qrCode:updated', {
-                instanceId: updated._id,
+                id: updated._id.toString(),
+                instanceId: updated.instanceId,
                 qrCode: qrDataUrl,
               });
             }
@@ -63,7 +64,8 @@ export class BaileysEngine {
           );
           if (updated) {
             emitInstanceEvent('status:changed', {
-              instanceId: updated._id,
+              id: updated._id.toString(),
+              instanceId: updated.instanceId,
               status: 'open',
               phoneNumber: phone,
             });
@@ -83,7 +85,8 @@ export class BaileysEngine {
             this.qrCodes.delete(instanceId);
             if (updated) {
               emitInstanceEvent('status:changed', {
-                instanceId: updated._id,
+                id: updated._id.toString(),
+                instanceId: updated.instanceId,
                 status: 'close',
               });
             }
@@ -100,14 +103,19 @@ export class BaileysEngine {
     }
   }
 
-  static getSession(instanceId?: string) {
+  static getSession(instanceId: string): any {
     if (instanceId && this.sessions.has(instanceId)) {
       return this.sessions.get(instanceId);
     }
-    for (const [id, session] of this.sessions.entries()) {
-      if (session && session.user) return session;
-    }
     return null;
+  }
+
+  static async getPairingCode(instanceId: string, phone: string): Promise<string> {
+    const socket = this.getSession(instanceId);
+    if (!socket) throw new Error('WhatsApp session not initialized');
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const code = await socket.requestPairingCode(cleanPhone);
+    return code;
   }
 
   static getQRCode(instanceId: string): string {

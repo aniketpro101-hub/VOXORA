@@ -11,6 +11,7 @@ import {
   getSetupStatus,
   requestOTP,
   verifyOTP,
+  setupSchema,
   registerSchema,
   loginSchema,
   changePasswordSchema,
@@ -22,7 +23,7 @@ import { authRateLimiter } from '../middleware/rateLimiter.js';
 const router = Router();
 
 router.get('/setup-status', getSetupStatus);
-router.post('/setup', validate(registerSchema), setup);
+router.post('/setup', authRateLimiter, validate(setupSchema), setup);
 router.post('/register', validate(registerSchema), register);
 router.post('/login', authRateLimiter, validate(loginSchema), login);
 router.post('/otp/request', authRateLimiter, requestOTP);

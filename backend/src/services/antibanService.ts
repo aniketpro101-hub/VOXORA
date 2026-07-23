@@ -4,7 +4,7 @@ import { AntibanSettings, IAntibanSettings } from '../models/AntibanSettings.js'
 import { logger } from '../utils/logger.js';
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || 'voxora_evolution_secret_key_2026';
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
 
 const evoClient = axios.create({
   baseURL: EVOLUTION_API_URL,
@@ -101,10 +101,13 @@ export class AntibanEngine {
     const limit = instance.dailyLimit || this.getWarmupLimit(instance);
     const remaining = Math.max(0, limit - instance.currentDayCount);
 
+    const resetAt = new Date(now.getTime());
+    resetAt.setHours(24, 0, 0, 0);
+
     return {
       allowed: instance.currentDayCount < limit,
       remaining,
-      resetAt: new Date(now.setHours(24, 0, 0, 0)),
+      resetAt,
     };
   }
 

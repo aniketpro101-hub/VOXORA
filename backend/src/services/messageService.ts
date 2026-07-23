@@ -5,7 +5,7 @@ import { MessageLog } from '../models/MessageLog.js';
 import { BaileysEngine } from './baileysEngine.js';
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || 'voxora_evolution_secret_key_2026';
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
 
 const evoClient = axios.create({
   baseURL: EVOLUTION_API_URL,
@@ -204,7 +204,18 @@ export class MessageService {
    * 9. Send Media with Buttons
    */
   static async sendMediaWithButtons(instanceId: string, phone: string, mediaUrl: string = '', caption: string = '', buttons: any[] = [], options: any = {}) {
-    return this.sendImageMessage(instanceId, phone, mediaUrl, caption, { ...options, buttons });
+    if (buttons && buttons.length > 0) {
+      let formattedCaption = caption;
+      formattedCaption += '\n\n━━━━━━━━━━━━━━━━━━━━━\n👇 *Please reply with:*\n\n';
+      buttons.forEach((b: any, idx: number) => {
+        const num = idx + 1;
+        const text = b.text || b;
+        formattedCaption += `💬 *${num}* ─ ${text}\n`;
+      });
+      formattedCaption += '━━━━━━━━━━━━━━━━━━━━━\n_💡 Just type the number and send_';
+      return this.sendImageMessage(instanceId, phone, mediaUrl, formattedCaption, options);
+    }
+    return this.sendImageMessage(instanceId, phone, mediaUrl, caption, options);
   }
 
   /**

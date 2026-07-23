@@ -34,7 +34,7 @@ export class EvolutionService {
   }
 
   static async getPairingCode(instanceName: string, phoneNumber: string) {
-    return '';
+    return BaileysEngine.getPairingCode(instanceName, phoneNumber);
   }
 
   static async getConnectionStatus(instanceName: string) {

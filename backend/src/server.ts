@@ -87,7 +87,6 @@ app.use('/api/instances', instanceRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/uploads', uploadRoutes);
 app.use('/api/contacts', importRoutes);
 app.use('/api/antiban', antibanRoutes);
 app.use('/api/campaigns', campaignRoutes);

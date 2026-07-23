@@ -140,11 +140,14 @@ export class LicenseService {
       }
 
       const jsonStr = JSON.stringify(licenseData);
-      const cipher = crypto.createCipheriv('aes-256-cbc', crypto.scryptSync(ENCRYPTION_SECRET, 'salt', 32), Buffer.alloc(16, 0));
+      const iv = crypto.randomBytes(16);
+      const key = crypto.scryptSync(ENCRYPTION_SECRET, 'voxora_scrypt_salt_2026', 32);
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
       let encrypted = cipher.update(jsonStr, 'utf8', 'hex');
       encrypted += cipher.final('hex');
 
-      fs.writeFileSync(path.join(voxoraDir, 'license.dat'), encrypted, 'utf8');
+      const payload = iv.toString('hex') + ':' + encrypted;
+      fs.writeFileSync(path.join(voxoraDir, 'license.dat'), payload, 'utf8');
     } catch (e) {
       logger.error('[LicenseService] Failed to save local encrypted license', e);
     }
@@ -160,8 +163,13 @@ export class LicenseService {
 
       if (!fs.existsSync(filePath)) return null;
 
-      const encrypted = fs.readFileSync(filePath, 'utf8');
-      const decipher = crypto.createDecipheriv('aes-256-cbc', crypto.scryptSync(ENCRYPTION_SECRET, 'salt', 32), Buffer.alloc(16, 0));
+      const payload = fs.readFileSync(filePath, 'utf8');
+      if (!payload.includes(':')) return null;
+
+      const [ivHex, encrypted] = payload.split(':');
+      const iv = Buffer.from(ivHex, 'hex');
+      const key = crypto.scryptSync(ENCRYPTION_SECRET, 'voxora_scrypt_salt_2026', 32);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
 

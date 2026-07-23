@@ -35,7 +35,7 @@ export default function AddInstanceModal({ isOpen, onClose, onSuccess }: AddInst
 
   const [qrCode, setQrCode] = useState<string>('');
   const [pairingCode, setPairingCode] = useState<string>('');
-  const [countdown, setCountdown] = useState<number>(30);
+  const [countdown, setCountdown] = useState<number>(20);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function AddInstanceModal({ isOpen, onClose, onSuccess }: AddInst
       setCreatedInstance(null);
       setQrCode('');
       setPairingCode('');
-      setCountdown(30);
+      setCountdown(20);
     }
   }, [isOpen]);
 
@@ -60,7 +60,7 @@ export default function AddInstanceModal({ isOpen, onClose, onSuccess }: AddInst
     const handleQrUpdated = (data: { instanceId: string; qrCode: string }) => {
       if (data.instanceId === createdInstance._id) {
         setQrCode(data.qrCode);
-        setCountdown(30);
+        setCountdown(20);
       }
     };
 
@@ -100,7 +100,7 @@ export default function AddInstanceModal({ isOpen, onClose, onSuccess }: AddInst
       setCountdown((prev) => {
         if (prev <= 1) {
           handleRefreshQR();
-          return 30;
+          return 20;
         }
         return prev - 1;
       });
@@ -115,7 +115,7 @@ export default function AddInstanceModal({ isOpen, onClose, onSuccess }: AddInst
       const res = await instanceApi.refreshQR(createdInstance._id);
       if (res.qrCode) {
         setQrCode(res.qrCode);
-        setCountdown(30);
+        setCountdown(20);
       }
     } catch (err) {
       console.error(err);

@@ -50,7 +50,8 @@ export default function LoginPage() {
         setIsSetupRequired(true);
       }
     } catch (err) {
-      // Ignore
+      // Safe default: Assume setup may be required on fresh startup or transient network error
+      setIsSetupRequired(true);
     }
   };
 

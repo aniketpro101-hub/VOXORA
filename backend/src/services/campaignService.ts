@@ -134,7 +134,7 @@ export class CampaignService {
       instanceIdStr = instDoc?.instanceId || (typeof campaign.instanceIds[0] === 'string' ? campaign.instanceIds[0] : '');
     }
     if (!instanceIdStr) {
-      const activeInst = await Instance.findOne({ status: 'connected' });
+      const activeInst = await Instance.findOne({ status: 'open' });
       instanceIdStr = activeInst?.instanceId || '';
     }
     if (!instanceIdStr) {
@@ -272,16 +272,12 @@ export class CampaignService {
           deliveredAt: new Date(),
           hasButtons: !!(campaign.buttons && campaign.buttons.length > 0),
           buttons: campaign.buttons || [],
-          hasListMenu: !!(campaign.listMenu && campaign.listMenu.sections),
-          listMenu: campaign.listMenu,
         });
 
-        currentCampaign.sentCount = (currentCampaign.sentCount || 0) + 1;
-        currentCampaign.deliveredCount = (currentCampaign.deliveredCount || 0) + 1;
-        currentCampaign.stats.sentCount = (currentCampaign.stats.sentCount || 0) + 1;
-        currentCampaign.stats.deliveredCount = (currentCampaign.stats.deliveredCount || 0) + 1;
-        currentCampaign.markModified('stats');
-        await currentCampaign.save();
+        await Campaign.updateOne(
+          { _id: campaignId },
+          { $inc: { sentCount: 1, deliveredCount: 1, 'stats.sentCount': 1, 'stats.deliveredCount': 1 } }
+        );
       } catch (sendErr: any) {
         logger.warn(`[Campaign Engine] Failed sending to ${c.phone}: ${sendErr.message}`);
 
@@ -296,10 +292,10 @@ export class CampaignService {
           failureReason: sendErr.message || 'WhatsApp dispatch error',
         });
 
-        currentCampaign.failedCount = (currentCampaign.failedCount || 0) + 1;
-        currentCampaign.stats.failedCount = (currentCampaign.stats.failedCount || 0) + 1;
-        currentCampaign.markModified('stats');
-        await currentCampaign.save();
+        await Campaign.updateOne(
+          { _id: campaignId },
+          { $inc: { failedCount: 1, 'stats.failedCount': 1 } }
+        );
       }
 
       // Anti-ban delay driven by user settings (default: 20s - 45s safe interval)
@@ -422,11 +418,23 @@ export class CampaignService {
 
     const failedLogs = await MessageLog.find({ campaignId: campaign._id, status: 'failed' });
     let retriedSuccess = 0;
-    const instanceIdStr = campaign.instanceIds?.[0]?.toString() || '650000000000000000000001';
+
+    let instanceIdStr = '';
+    if (campaign.instanceIds && campaign.instanceIds.length > 0) {
+      const instDoc = await Instance.findById(campaign.instanceIds[0]);
+      instanceIdStr = instDoc?.instanceId || (typeof campaign.instanceIds[0] === 'string' ? campaign.instanceIds[0] : '');
+    }
+    if (!instanceIdStr) {
+      const activeInst = await Instance.findOne({ status: 'open' });
+      instanceIdStr = activeInst?.instanceId || '';
+    }
 
     for (const log of failedLogs) {
       try {
-        const text = log.content?.text || campaign.name;
+        const text =
+          typeof log.content === 'string'
+            ? log.content
+            : log.content?.text || campaign.messageTemplates?.[0] || campaign.messageTemplate || campaign.message || '';
         await BaileysEngine.sendMessage(instanceIdStr, log.recipientPhone, text);
 
         log.status = 'delivered';

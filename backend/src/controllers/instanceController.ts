@@ -85,7 +85,7 @@ export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunct
     return sendSuccess(res, 'QR Code retrieved', {
       qrCode: instance.qrCode || qrCode,
       status: instance.status,
-      expiresInSeconds: 45,
+      expiresInSeconds: 20,
     });
   } catch (error) {
     next(error);

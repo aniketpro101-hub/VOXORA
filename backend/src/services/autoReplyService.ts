@@ -257,6 +257,33 @@ export class AutoReplyService {
         }
         return true;
       }
+
+      if (recentLog.hasListMenu && recentLog.listMenu?.sections) {
+        let allRows: any[] = [];
+        recentLog.listMenu.sections.forEach((sec: any) => {
+          if (Array.isArray(sec.rows)) {
+            allRows.push(...sec.rows);
+          }
+        });
+
+        const selectedRow = allRows[optionNum - 1];
+        if (!selectedRow) {
+          await MessageService.sendTextMessage(
+            instanceName,
+            phone,
+            `❌ Invalid option "${textMessage}". Please reply with a number between 1 and ${allRows.length}.`
+          );
+          return true;
+        }
+
+        const rowTitle = selectedRow.title || selectedRow.id || `Option ${optionNum}`;
+        await MessageService.sendTextMessage(
+          instanceName,
+          phone,
+          `✅ *Option ${optionNum} Selected: ${rowTitle}*\n\n${selectedRow.description ? '_' + selectedRow.description + '_\n\n' : ''}Our team has received your choice!`
+        );
+        return true;
+      }
     } catch (err: any) {
       logger.warn(`[AutoReply] handleNumberReply failed: ${err.message}`);
     }

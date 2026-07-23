@@ -86,11 +86,11 @@ export const campaignWorker = new Worker(
     const randomDelayMs = AntibanEngine.calculateRandomDelay(settings as any);
     await new Promise((resolve) => setTimeout(resolve, randomDelayMs));
 
-    await AntibanEngine.simulateTyping(instance.name, dbJob.phone, String(dbJob.messageData.content || '').length);
+    await AntibanEngine.simulateTyping(instance.instanceId, dbJob.phone, String(dbJob.messageData.content || '').length);
 
     // 6. Send Message via MessageService
     try {
-      const result = await MessageService.sendTestMessage(instance.name, dbJob.phone, dbJob.messageData);
+      const result = await MessageService.sendTestMessage(instance.instanceId, dbJob.phone, dbJob.messageData);
 
       dbJob.status = 'sent';
       dbJob.sentAt = new Date();
