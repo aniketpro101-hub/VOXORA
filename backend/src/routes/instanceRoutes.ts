@@ -22,7 +22,6 @@ const router = Router();
 router.use(authenticateToken);
 
 router.post('/', createInstance);
-router.post('/create', createInstance);
 router.get('/', getInstances);
 router.get('/:id', getInstance);
 router.put('/:id', updateInstance);

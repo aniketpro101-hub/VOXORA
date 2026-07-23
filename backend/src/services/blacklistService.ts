@@ -148,7 +148,9 @@ export class BlacklistEngine {
       try {
         await this.banNumber(p, { reason, category, addedBy: userId });
         count++;
-      } catch (e) {}
+      } catch (e: any) {
+        logger.warn(`[BlacklistEngine] Bulk ban skipped for phone ${p}: ${e.message}`);
+      }
     }
     return { count };
   }
@@ -162,7 +164,9 @@ export class BlacklistEngine {
       try {
         await this.unbanNumber(p, userId, reason);
         count++;
-      } catch (e) {}
+      } catch (e: any) {
+        logger.warn(`[BlacklistEngine] Bulk unban skipped for phone ${p}: ${e.message}`);
+      }
     }
     return { count };
   }
@@ -192,6 +196,8 @@ export class BlacklistEngine {
     try {
       const msg = '✅ You have been unsubscribed successfully. You will not receive any more automated messages from us.';
       await MessageService.sendTextMessage(instanceName, phone, msg);
-    } catch (e) {}
+    } catch (e: any) {
+      logger.warn(`[BlacklistEngine] Unsubscribe confirmation failed for phone ${phone}: ${e.message}`);
+    }
   }
 }
