@@ -30,9 +30,9 @@ export const createInstance = async (req: AuthRequest, res: Response, next: Next
     const instanceId = `voxora_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const webhookUrl = `${req.protocol}://${req.get('host')}/api/webhook`;
 
-    // 1. Create Instance record FIRST in database to avoid duplicate key race condition
+    // 1. Create Instance record FIRST in database
     const newInstance = await Instance.create({
-      name,
+      name: name || 'WhatsApp Account',
       instanceId,
       phoneNumber: phoneNumber || '',
       status: 'connecting',
@@ -43,14 +43,14 @@ export const createInstance = async (req: AuthRequest, res: Response, next: Next
       webhookUrl,
     });
 
-    // 2. Initialize Baileys engine session AFTER document exists in DB
-    await EvolutionService.createInstance(instanceId, {
-      qrcode: loginMethod === 'qr',
-      number: phoneNumber,
+    // 2. Initialize Baileys session asynchronously in background (non-blocking HTTP response)
+    BaileysEngine.initSession(instanceId, true).catch((err: any) => {
+      console.warn(`[Baileys Session Warning] ${err?.message}`);
     });
 
     emitInstanceEvent('status:changed', {
-      instanceId: newInstance._id,
+      id: newInstance._id.toString(),
+      instanceId: newInstance.instanceId,
       status: 'connecting',
     });
 
@@ -73,7 +73,7 @@ export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunct
     }
 
     if (!BaileysEngine.getSession(instance.instanceId)) {
-      await BaileysEngine.initSession(instance.instanceId, instance.status !== 'open');
+      BaileysEngine.initSession(instance.instanceId, instance.status !== 'open').catch(() => {});
     }
 
     const qrData = await EvolutionService.getQRCode(instance.instanceId);
@@ -82,12 +82,12 @@ export const getQRCode = async (req: AuthRequest, res: Response, next: NextFunct
     if (qrCode && qrCode !== instance.qrCode) {
       instance.qrCode = qrCode;
       instance.status = 'qr';
-      await instance.save();
+      await instance.save().catch(() => {});
     }
 
     return sendSuccess(res, 'QR Code retrieved', {
-      qrCode: instance.qrCode || qrCode,
-      status: instance.status,
+      qrCode: instance.qrCode || qrCode || '',
+      status: instance.status || 'connecting',
       expiresInSeconds: 20,
     });
   } catch (error) {

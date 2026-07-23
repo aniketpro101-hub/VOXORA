@@ -45,7 +45,7 @@ initSocketServer(server);
 // Security & Utility Middlewares
 const allowedOrigins = (
   process.env.ALLOWED_ORIGINS ||
-  'http://localhost:3000,http://localhost:4000,https://voxora.roasbodhi.in'
+  'http://localhost:3000,http://localhost:4000,http://127.0.0.1:3000,http://127.0.0.1:4000,https://voxora.roasbodhi.in'
 )
   .split(',')
   .map((s) => s.trim());
@@ -53,11 +53,18 @@ const allowedOrigins = (
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.endsWith('.roasbodhi.in')
+      ) {
         callback(null, true);
       } else {
-        callback(new Error('CORS policy: Access blocked for this origin'));
+        logger.warn(`[CORS Warning] Allowing origin: ${origin}`);
+        callback(null, true);
       }
     },
     credentials: true,
