@@ -3,6 +3,7 @@ import { User, IUser } from '../models/User.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/jwtService.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { OTPService } from '../services/otpService.js';
 import { z } from 'zod';
 
 export const registerSchema = z.object({
@@ -335,5 +336,93 @@ export const setup = async (req: Request, res: Response, next: NextFunction) => 
     );
   } catch (error) {
     next(error);
+  }
+};
+
+export const requestOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return sendError(res, 'Phone number is required', 400);
+    }
+
+    const result = await OTPService.requestOTP(phone);
+    return sendSuccess(res, result.message, { devCode: result.devCode });
+  } catch (error: any) {
+    return sendError(res, error.message || 'Failed to send OTP', 400);
+  }
+};
+
+export const verifyOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone, code } = req.body;
+    if (!phone || !code) {
+      return sendError(res, 'Phone number and 6-digit OTP code are required', 400);
+    }
+
+    await OTPService.verifyOTP(phone, code);
+    const cleanPhone = OTPService.normalizePhone(phone);
+
+    // Find or create user by phone number
+    let user = await User.findOne({ phone: cleanPhone });
+    if (!user) {
+      const generatedEmail = `${cleanPhone}@voxora.app`;
+      user = await User.findOne({ email: generatedEmail });
+
+      if (!user) {
+        let userCount = 0;
+        try {
+          userCount = await User.countDocuments();
+        } catch (e) {}
+
+        user = await User.create({
+          name: `WhatsApp User (+${cleanPhone})`,
+          email: generatedEmail,
+          phone: cleanPhone,
+          role: userCount === 0 ? 'admin' : 'agent',
+          isActive: true,
+        });
+      }
+    }
+
+    if (!user.isActive) {
+      return sendError(res, 'Account is deactivated. Please contact an admin.', 403);
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const accessToken = generateAccessToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return sendSuccess(res, 'Logged in successfully via WhatsApp OTP', {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        phone: user.phone,
+      },
+      accessToken,
+    });
+  } catch (error: any) {
+    return sendError(res, error.message || 'OTP verification failed', 400);
   }
 };

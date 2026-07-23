@@ -9,6 +9,8 @@ import {
   changePassword,
   setup,
   getSetupStatus,
+  requestOTP,
+  verifyOTP,
   registerSchema,
   loginSchema,
   changePasswordSchema,
@@ -23,6 +25,8 @@ router.get('/setup-status', getSetupStatus);
 router.post('/setup', validate(registerSchema), setup);
 router.post('/register', validate(registerSchema), register);
 router.post('/login', authRateLimiter, validate(loginSchema), login);
+router.post('/otp/request', authRateLimiter, requestOTP);
+router.post('/otp/verify', authRateLimiter, verifyOTP);
 router.post('/logout', logout);
 router.post('/refresh-token', refreshToken);
 
