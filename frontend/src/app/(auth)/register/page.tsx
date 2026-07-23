@@ -35,7 +35,7 @@ export default function RegisterPage() {
       toast.success(`Registered successfully as ${user.role}!`);
       router.push('/dashboard');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Registration failed. Please check validation requirements.';
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed. Please check input requirements.';
       toast.error(msg);
     } finally {
       setIsLoading(false);
