@@ -18,7 +18,8 @@ export class OTPService {
   static normalizePhone(phone: string): string {
     let clean = phone.replace(/[^0-9]/g, '');
     if (clean.length === 10) {
-      clean = '91' + clean; // Default to India (+91) if 10 digits provided
+      const defaultCC = process.env.DEFAULT_COUNTRY_CODE || '91';
+      clean = defaultCC + clean;
     }
     return clean;
   }

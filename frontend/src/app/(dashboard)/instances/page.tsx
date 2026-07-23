@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/apiClient';
 import { toast } from 'sonner';
+import { getSocket } from '@/lib/socketClient';
 import { Smartphone, RefreshCw, CheckCircle, AlertCircle, Loader2, QrCode, Plus, Trash2, X, Inbox } from 'lucide-react';
 
 export default function WhatsAppInstancesPage() {
@@ -26,6 +27,43 @@ export default function WhatsAppInstancesPage() {
   useEffect(() => {
     fetchInstances();
   }, []);
+
+  // Real-time socket updates for QR code & status
+  useEffect(() => {
+    if (!activeInstance?._id) return;
+
+    const socket = getSocket();
+    socket.emit('join:instance', activeInstance._id);
+
+    const handleQrUpdated = (data: { instanceId: string; qrCode: string }) => {
+      if (data.instanceId === activeInstance._id || data.instanceId === activeInstance.instanceId) {
+        if (data.qrCode) {
+          setQrCode(data.qrCode);
+          setStatus('ready');
+        }
+      }
+    };
+
+    const handleStatusChanged = (data: { instanceId: string; status: string }) => {
+      if (data.instanceId === activeInstance._id || data.instanceId === activeInstance.instanceId) {
+        if (data.status === 'open') {
+          setStatus('connected');
+          toast.success('✅ WhatsApp Connected Successfully!');
+          fetchInstances();
+          setTimeout(() => setIsModalOpen(false), 2500);
+        }
+      }
+    };
+
+    socket.on('qrCode:updated', handleQrUpdated);
+    socket.on('status:changed', handleStatusChanged);
+
+    return () => {
+      socket.off('qrCode:updated', handleQrUpdated);
+      socket.off('status:changed', handleStatusChanged);
+      socket.emit('leave:instance', activeInstance._id);
+    };
+  }, [activeInstance]);
 
   const fetchInstances = async () => {
     setLoading(true);

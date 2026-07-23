@@ -10,138 +10,151 @@ import { MessageService } from '../services/messageService.js';
 import { getSocketIO } from '../services/socketService.js';
 import { logger } from '../utils/logger.js';
 
-export const campaignWorker = new Worker(
-  'campaign-sending-queue',
-  async (job: Job) => {
-    const { campaignJobId } = job.data;
-    const dbJob = await CampaignJob.findById(campaignJobId);
+let campaignWorkerInstance: Worker | null = null;
 
-    if (!dbJob || dbJob.status === 'sent' || dbJob.status === 'skipped') {
-      return;
-    }
+export function initCampaignWorker() {
+  if (campaignWorkerInstance) return campaignWorkerInstance;
+  try {
+    campaignWorkerInstance = new Worker(
+      'campaign-sending-queue',
+      async (job: Job) => {
+        const { campaignJobId } = job.data;
+        const dbJob = await CampaignJob.findById(campaignJobId);
 
-    const campaign = await Campaign.findById(dbJob.campaignId);
-    if (!campaign || campaign.status !== 'running' || campaign.pausedByUser) {
-      logger.info(`[Worker] Skipping job ${campaignJobId} because campaign is ${campaign?.status}`);
-      return;
-    }
+        if (!dbJob || dbJob.status === 'sent' || dbJob.status === 'skipped') {
+          return;
+        }
 
-    const instance = await Instance.findById(dbJob.instanceId);
-    if (!instance || instance.status !== 'open') {
-      logger.warn(`[Worker] Instance ${dbJob.instanceId} not ready`);
-      throw new Error('Instance disconnected');
-    }
+        const campaign = await Campaign.findById(dbJob.campaignId);
+        if (!campaign || campaign.status !== 'running' || campaign.pausedByUser) {
+          logger.info(`[Worker] Skipping job ${campaignJobId} because campaign is ${campaign?.status}`);
+          return;
+        }
 
-    const settings: any = (await AntibanSettings.findOne({ userId: campaign.owner || campaign.createdBy })) || {
-      minDelay: 20,
-      maxDelay: 55,
-      messagesPerBatch: 50,
-      batchBreakDuration: 10,
-      sleepModeEnabled: true,
-      sleepStartHour: 22,
-      sleepEndHour: 8,
-      pauseOnConsecutiveFailures: 5,
-    };
+        const instance = await Instance.findById(dbJob.instanceId);
+        if (!instance || instance.status !== 'open') {
+          logger.warn(`[Worker] Instance ${dbJob.instanceId} not ready`);
+          throw new Error('Instance disconnected');
+        }
 
-    // 1. Sleep Time Check
-    if (AntibanEngine.isSleepTime(settings as any)) {
-      logger.info(`[Worker] Sleep mode active. Delaying campaign job.`);
-      await job.moveToDelayed(Date.now() + 300000); // Retry in 5 minutes
-      return;
-    }
+        const settings: any = (await AntibanSettings.findOne({ userId: campaign.owner || campaign.createdBy })) || {
+          minDelay: 20,
+          maxDelay: 55,
+          messagesPerBatch: 50,
+          batchBreakDuration: 10,
+          sleepModeEnabled: true,
+          sleepStartHour: 22,
+          sleepEndHour: 8,
+          pauseOnConsecutiveFailures: 5,
+        };
 
-    // 2. Daily Limit Check
-    const dailyCheck = await AntibanEngine.checkDailyLimit(instance);
-    if (!dailyCheck.allowed) {
-      logger.warn(`[Worker] Instance daily limit reached (${instance.dailyLimit})`);
-      await job.moveToDelayed(dailyCheck.resetAt.getTime());
-      return;
-    }
+        // 1. Sleep Time Check
+        if (AntibanEngine.isSleepTime(settings as any)) {
+          logger.info(`[Worker] Sleep mode active. Delaying campaign job.`);
+          await job.moveToDelayed(Date.now() + 300000); // Retry in 5 minutes
+          return;
+        }
 
-    // 3. Hourly Limit Check
-    const hourlyCheck = await AntibanEngine.checkHourlyLimit(instance);
-    if (!hourlyCheck.allowed) {
-      logger.warn(`[Worker] Hourly limit reached for ${instance.name}. Delaying 10m.`);
-      await job.moveToDelayed(Date.now() + 600000);
-      return;
-    }
+        // 2. Daily Limit Check
+        const dailyCheck = await AntibanEngine.checkDailyLimit(instance);
+        if (!dailyCheck.allowed) {
+          logger.warn(`[Worker] Instance daily limit reached (${instance.dailyLimit})`);
+          await job.moveToDelayed(dailyCheck.resetAt.getTime());
+          return;
+        }
 
-    // 4. Batch Break Check
-    const breakCheck = AntibanEngine.shouldTakeBreak(campaign.currentBatch, settings.messagesPerBatch);
-    if (breakCheck.breakNeeded) {
-      campaign.currentBatch = 0;
-      await campaign.save();
-      logger.info(`[Worker] Taking batch break for ${breakCheck.durationMinutes} minutes`);
-      await job.moveToDelayed(Date.now() + breakCheck.durationMinutes * 60000);
-      return;
-    }
+        // 3. Hourly Limit Check
+        const hourlyCheck = await AntibanEngine.checkHourlyLimit(instance);
+        if (!hourlyCheck.allowed) {
+          logger.warn(`[Worker] Hourly limit reached for ${instance.name}. Delaying 10m.`);
+          await job.moveToDelayed(Date.now() + 600000);
+          return;
+        }
 
-    // Update job status to processing
-    dbJob.status = 'processing';
-    dbJob.attempts += 1;
-    dbJob.lastAttemptAt = new Date();
-    await dbJob.save();
+        // 4. Batch Break Check
+        const breakCheck = AntibanEngine.shouldTakeBreak(campaign.currentBatch, settings.messagesPerBatch);
+        if (breakCheck.breakNeeded) {
+          campaign.currentBatch = 0;
+          await campaign.save();
+          logger.info(`[Worker] Taking batch break for ${breakCheck.durationMinutes} minutes`);
+          await job.moveToDelayed(Date.now() + breakCheck.durationMinutes * 60000);
+          return;
+        }
 
-    // 5. Anti-Ban Human Simulation (Delays & Typing)
-    const randomDelayMs = AntibanEngine.calculateRandomDelay(settings as any);
-    await new Promise((resolve) => setTimeout(resolve, randomDelayMs));
+        // Update job status to processing
+        dbJob.status = 'processing';
+        dbJob.attempts += 1;
+        dbJob.lastAttemptAt = new Date();
+        await dbJob.save();
 
-    await AntibanEngine.simulateTyping(instance.instanceId, dbJob.phone, String(dbJob.messageData.content || '').length);
+        // 5. Anti-Ban Human Simulation (Delays & Typing)
+        const randomDelayMs = AntibanEngine.calculateRandomDelay(settings as any);
+        await new Promise((resolve) => setTimeout(resolve, randomDelayMs));
 
-    // 6. Send Message via MessageService
-    try {
-      const result = await MessageService.sendTestMessage(instance.instanceId, dbJob.phone, dbJob.messageData);
+        await AntibanEngine.simulateTyping(instance.instanceId, dbJob.phone, String(dbJob.messageData.content || '').length);
 
-      dbJob.status = 'sent';
-      dbJob.sentAt = new Date();
-      dbJob.messageId = result?.key?.id || `msg_${Date.now()}`;
-      await dbJob.save();
+        // 6. Send Message via MessageService
+        try {
+          const result = await MessageService.sendTestMessage(instance.instanceId, dbJob.phone, dbJob.messageData);
 
-      // Update counters
-      campaign.sentCount += 1;
-      campaign.currentBatch += 1;
-      instance.currentDayCount += 1;
-      instance.currentHourCount += 1;
-      instance.totalMessagesSent += 1;
-      instance.consecutiveFailures = 0;
-      await campaign.save();
-      await instance.save();
+          dbJob.status = 'sent';
+          dbJob.sentAt = new Date();
+          dbJob.messageId = result?.key?.id || `msg_${Date.now()}`;
+          await dbJob.save();
 
-      // Socket.IO Progress Broadcast
-      const io = getSocketIO();
-      if (io) {
-        io.emit(`campaign:${campaign._id}:progress`, {
-          sentCount: campaign.sentCount,
-          totalContacts: campaign.totalContacts,
-          recentPhone: dbJob.phone,
-          status: 'sent',
-        });
+          // Update counters
+          campaign.sentCount += 1;
+          campaign.currentBatch += 1;
+          instance.currentDayCount += 1;
+          instance.currentHourCount += 1;
+          instance.totalMessagesSent += 1;
+          instance.consecutiveFailures = 0;
+          await campaign.save();
+          await instance.save();
+
+          // Socket.IO Progress Broadcast
+          const io = getSocketIO();
+          if (io) {
+            io.emit(`campaign:${campaign._id}:progress`, {
+              sentCount: campaign.sentCount,
+              totalContacts: campaign.totalContacts,
+              recentPhone: dbJob.phone,
+              status: 'sent',
+            });
+          }
+        } catch (error: any) {
+          dbJob.status = 'failed';
+          dbJob.failedAt = new Date();
+          dbJob.errorMessage = error.message || 'Send failed';
+          await dbJob.save();
+
+          campaign.failedCount += 1;
+          instance.consecutiveFailures += 1;
+          await campaign.save();
+          await instance.save();
+
+          // Auto-pause if failures exceed threshold
+          if (instance.consecutiveFailures >= (settings.pauseOnConsecutiveFailures || 5)) {
+            campaign.status = 'paused';
+            campaign.pausedByAutoAntiban = true;
+            campaign.pauseReason = `Auto-paused: ${instance.consecutiveFailures} consecutive failures`;
+            await campaign.save();
+            logger.warn(`[Antiban] Auto-paused campaign ${campaign._id} due to consecutive failures`);
+          }
+
+          throw error;
+        }
+      },
+      {
+        connection,
+        concurrency: 2,
       }
-    } catch (error: any) {
-      dbJob.status = 'failed';
-      dbJob.failedAt = new Date();
-      dbJob.errorMessage = error.message || 'Send failed';
-      await dbJob.save();
-
-      campaign.failedCount += 1;
-      instance.consecutiveFailures += 1;
-      await campaign.save();
-      await instance.save();
-
-      // Auto-pause if failures exceed threshold
-      if (instance.consecutiveFailures >= (settings.pauseOnConsecutiveFailures || 5)) {
-        campaign.status = 'paused';
-        campaign.pausedByAutoAntiban = true;
-        campaign.pauseReason = `Auto-paused: ${instance.consecutiveFailures} consecutive failures`;
-        await campaign.save();
-        logger.warn(`[Antiban] Auto-paused campaign ${campaign._id} due to consecutive failures`);
-      }
-
-      throw error;
-    }
-  },
-  {
-    connection,
-    concurrency: 2,
+    );
+    return campaignWorkerInstance;
+  } catch (err: any) {
+    logger.warn(`[Campaign Worker] Failed to initialize BullMQ worker (Redis offline): ${err.message}`);
+    return null;
   }
-);
+}
+
+export const campaignWorker = initCampaignWorker();
