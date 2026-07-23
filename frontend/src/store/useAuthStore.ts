@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface UserProfile {
   id: string;
@@ -18,26 +19,35 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('voxora_access_token') : null,
-  isAuthenticated: false,
-  isLoading: true,
-  setUser: (user, token) => {
-    if (token) {
-      localStorage.setItem('voxora_access_token', token);
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: typeof window !== 'undefined' ? localStorage.getItem('voxora_access_token') : null,
+      isAuthenticated: false,
+      isLoading: true,
+      setUser: (user, token) => {
+        if (token && typeof window !== 'undefined') {
+          localStorage.setItem('voxora_access_token', token);
+        }
+        set({
+          user,
+          token: token ?? (typeof window !== 'undefined' ? localStorage.getItem('voxora_access_token') : null),
+          isAuthenticated: !!user,
+          isLoading: false,
+        });
+      },
+      logout: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('voxora_access_token');
+          localStorage.removeItem('voxora_auth_storage');
+        }
+        set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      },
+    }),
+    {
+      name: 'voxora_auth_storage',
+      storage: createJSONStorage(() => localStorage),
     }
-    set({
-      user,
-      token: token ?? localStorage.getItem('voxora_access_token'),
-      isAuthenticated: !!user,
-      isLoading: false,
-    });
-  },
-  logout: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('voxora_access_token');
-    }
-    set({ user: null, token: null, isAuthenticated: false, isLoading: false });
-  },
-}));
+  )
+);
