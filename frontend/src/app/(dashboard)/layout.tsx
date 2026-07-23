@@ -8,7 +8,7 @@ import { apiClient } from '@/lib/apiClient';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, setUser, logout } = useAuthStore();
-  const [isChecking, setIsChecking] = useState(!user);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -16,27 +16,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const res = await apiClient.get('/auth/me');
         if (res.data?.data) {
           setUser(res.data.data);
-        }
-      } catch (err: any) {
-        if (err.response?.status === 401) {
+          setIsChecking(false);
+        } else {
           logout();
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/setup')) {
             window.location.href = '/login';
           }
         }
-      } finally {
-        setIsChecking(false);
+      } catch (err: any) {
+        logout();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/setup')) {
+          window.location.href = '/login';
+        }
       }
     };
 
-    if (!user) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('voxora_access_token') : null;
+    if (!token && !user) {
+      logout();
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/setup')) {
+        window.location.href = '/login';
+      }
+    } else if (!user) {
       fetchUser();
     } else {
       setIsChecking(false);
     }
   }, [user, setUser, logout]);
 
-  if (isChecking && !user) {
+  if (isChecking || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
