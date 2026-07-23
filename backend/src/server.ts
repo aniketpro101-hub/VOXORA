@@ -141,11 +141,13 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    logger.info(`🚀 VOXORA Backend running on port ${PORT}`);
+server.listen(PORT, () => {
+  logger.info(`🚀 VOXORA Backend running on port ${PORT}`);
+  connectDB().then(() => {
     SchedulerService.startScheduler();
     BaileysEngine.autoReconnectSavedSessions();
     CampaignService.resumeRunningCampaigns();
+  }).catch((err) => {
+    logger.error('Database connection error:', err);
   });
 });
