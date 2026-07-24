@@ -134,6 +134,27 @@ export class BaileysEngine {
               },
               { sort: { createdAt: -1 } }
             );
+
+            // Auto-blacklist if button clicked is an unsubscribe / opt-out button
+            try {
+              const { BlacklistEngine } = await import('./blacklistService.js');
+              const wasBanned = await BlacklistEngine.handleButtonClickForBan(
+                senderPhone,
+                buttonId || buttonText || '',
+                instanceId
+              );
+              if (wasBanned) {
+                logger.info(`[Baileys] Auto-blacklisted +${senderPhone} for clicking "${buttonId}"`);
+                emitInstanceEvent('contact:unsubscribed', {
+                  phone: senderPhone,
+                  instanceId,
+                  buttonId,
+                  timestamp: new Date(),
+                });
+              }
+            } catch (banErr: any) {
+              logger.error(`[Baileys] Failed to process button click blacklist: ${banErr.message}`);
+            }
           }
 
           // Check reaction message

@@ -11,6 +11,7 @@ import TemplateManager, { SavedTemplate } from '@/components/composer/TemplateMa
 import ButtonBuilder, { ButtonItem } from '@/components/composer/ButtonBuilder';
 import ListMenuBuilder, { ListMenuData } from '@/components/composer/ListMenuBuilder';
 import ContactInfoSection from '@/components/campaigns/ContactInfoSection';
+import SpeedModeSelector from '@/components/campaigns/SpeedModeSelector';
 import { parseNumbersFromText } from '@/lib/phoneNormalizer';
 import { instanceApi, InstanceData } from '@/services/instanceApi';
 import { apiClient } from '@/lib/apiClient';
@@ -72,6 +73,7 @@ function QuickCampaignForm() {
   const [recentCampaigns, setRecentCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOtpEnabled, setIsOtpEnabled] = useState(false); // Default OFF!
+  const [selectedSpeedMode, setSelectedSpeedMode] = useState('medium');
 
   useEffect(() => {
     apiClient.get('/system/features').then((res) => {
@@ -200,6 +202,7 @@ function QuickCampaignForm() {
         mediaFiles: attachments.map((a) => a.url),
         buttons: interactiveMode === 'buttons' ? buttons : [],
         listMenu: interactiveMode === 'list' ? listMenu : undefined,
+        speedMode: selectedSpeedMode,
         contactInfo,
         showContactInfo: true,
         contactInfoHeader: '📞 *Contact Us:*',
@@ -514,6 +517,16 @@ function QuickCampaignForm() {
 
                 {interactiveMode === 'list' && <ListMenuBuilder data={listMenu} onChange={setListMenu} />}
               </div>
+            </Card>
+
+            {/* Smart Speed Mode Selection */}
+            <Card className="p-5">
+              <SpeedModeSelector
+                contactCount={parsed.validCount || 100}
+                instanceCount={selectedInstanceId ? 1 : 1}
+                selectedMode={selectedSpeedMode}
+                onSelect={(mode) => setSelectedSpeedMode(mode)}
+              />
             </Card>
 
             {/* Contact Info & Auto-Clickable Links Section */}

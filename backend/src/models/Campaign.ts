@@ -78,6 +78,21 @@ export interface ICampaign extends Document {
   pausedByUser: boolean;
   pausedByAutoAntiban: boolean;
   pauseReason?: string;
+  speedMode?: string;
+  autoAdjustSpeed?: boolean;
+  speedAdjustedAt?: Date;
+  speedAdjustmentReason?: string;
+  antibanButtons?: {
+    autoAddUnsubscribe?: boolean;
+    onlyForFirstContact?: boolean;
+    unsubscribeText?: string;
+    useUnsubscribeVariant?: string;
+    maxContentButtons?: number;
+    addNotNowButton?: boolean;
+    autoBlacklistOnClick?: boolean;
+    sendConfirmation?: boolean;
+    confirmationMessage?: string;
+  };
   lastActivityAt?: Date;
   estimatedCompletionAt?: Date;
   actualCompletionAt?: Date;
@@ -168,6 +183,21 @@ const CampaignSchema: Schema<ICampaign> = new Schema(
     pausedByUser: { type: Boolean, default: false },
     pausedByAutoAntiban: { type: Boolean, default: false },
     pauseReason: { type: String, default: '' },
+    speedMode: { type: String, default: 'medium' },
+    autoAdjustSpeed: { type: Boolean, default: true },
+    speedAdjustedAt: { type: Date },
+    speedAdjustmentReason: { type: String, default: '' },
+    antibanButtons: {
+      autoAddUnsubscribe: { type: Boolean, default: true },
+      onlyForFirstContact: { type: Boolean, default: true },
+      unsubscribeText: { type: String, default: '✕ Not Interested' },
+      useUnsubscribeVariant: { type: String, default: 'not_interested' },
+      maxContentButtons: { type: Number, default: 2 },
+      addNotNowButton: { type: Boolean, default: true },
+      autoBlacklistOnClick: { type: Boolean, default: true },
+      sendConfirmation: { type: Boolean, default: true },
+      confirmationMessage: { type: String, default: '✅ You have been unsubscribed successfully.' },
+    },
     lastActivityAt: { type: Date },
     estimatedCompletionAt: { type: Date },
     actualCompletionAt: { type: Date },

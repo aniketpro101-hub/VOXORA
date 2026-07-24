@@ -51,6 +51,19 @@ export interface IInstance extends Document {
     lastResetHour?: Date;
   };
 
+  currentSpeedMode?: string;
+  blockMetrics: {
+    totalSent: number;
+    totalDelivered: number;
+    totalRead: number;
+    totalReplied: number;
+    totalUnsubscribed: number;
+    totalNoDelivery: number;
+    blockRate: number;
+    lastBlockRateCheck?: Date;
+    autoStoppedDueToBlocks: boolean;
+  };
+
   // Phase B: Admin Override Options
   adminOverride: {
     enabled: boolean;
@@ -198,6 +211,20 @@ const InstanceSchema: Schema<IInstance> = new Schema(
       batchSize: { type: Number, default: 15 },
       batchBreakMin: { type: Number, default: 300000 },
       batchBreakMax: { type: Number, default: 900000 },
+    },
+
+    // Speed Mode & Block Metrics Schema
+    currentSpeedMode: { type: String, default: 'medium' },
+    blockMetrics: {
+      totalSent: { type: Number, default: 0 },
+      totalDelivered: { type: Number, default: 0 },
+      totalRead: { type: Number, default: 0 },
+      totalReplied: { type: Number, default: 0 },
+      totalUnsubscribed: { type: Number, default: 0 },
+      totalNoDelivery: { type: Number, default: 0 },
+      blockRate: { type: Number, default: 0 },
+      lastBlockRateCheck: { type: Date },
+      autoStoppedDueToBlocks: { type: Boolean, default: false },
     },
 
     // Phase B: Rotation Priority & Usage Schema
