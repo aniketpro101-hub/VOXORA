@@ -97,12 +97,11 @@ export default function RegisterPage() {
             />
 
             <Input
-              label="WhatsApp Phone Number *"
+              label="WhatsApp Phone Number (Optional)"
               type="tel"
               placeholder="+91 9876543210"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              required
             />
 
             <Input
