@@ -1,21 +1,33 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAutoNameConfig extends Document {
+  userId: mongoose.Types.ObjectId;
+  seriesName: string;
   prefix: string;
-  currentNumber: number;
+  startNumber: number;
+  currentSequence: number;
   paddingDigits: number;
   separator: string;
-  userId: mongoose.Types.ObjectId;
+  suffix: string;
+  existingNameHandling: 'prefix' | 'suffix' | 'replace' | 'keep';
+  existingNamePrefix: string;
+  existingNameSuffix: string;
   updatedAt: Date;
 }
 
 const AutoNameConfigSchema = new Schema<IAutoNameConfig>(
   {
-    prefix: { type: String, default: 'AA' },
-    currentNumber: { type: Number, default: 0 },
-    paddingDigits: { type: Number, default: 3 },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    seriesName: { type: String, default: 'aRoasBodhi' },
+    prefix: { type: String, default: 'aRoasBodhi' },
+    startNumber: { type: Number, default: 1 },
+    currentSequence: { type: Number, default: 0 },
+    paddingDigits: { type: Number, default: 5 },
     separator: { type: String, default: '' },
-    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    suffix: { type: String, default: '' },
+    existingNameHandling: { type: String, enum: ['prefix', 'suffix', 'replace', 'keep'], default: 'prefix' },
+    existingNamePrefix: { type: String, default: 'aRoasBodhi_' },
+    existingNameSuffix: { type: String, default: '_aRoasBodhi' },
   },
   { timestamps: true }
 );

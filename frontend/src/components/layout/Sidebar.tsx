@@ -69,6 +69,7 @@ export default function Sidebar() {
       icon: Users,
       children: [
         { label: 'All Contacts', href: '/contacts' },
+        { label: '🏷️ Auto-Naming Sync', href: '/settings/naming' },
         { label: 'CRM Pipeline', href: '/crm' },
       ],
     },

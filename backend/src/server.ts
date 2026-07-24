@@ -33,6 +33,7 @@ import licenseRoutes from './routes/licenseRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import contactGroupRoutes from './routes/contactGroupRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import namingRoutes from './routes/namingRoutes.js';
 
 const rootDir = path.resolve();
 
@@ -112,6 +113,7 @@ app.use('/api/license', licenseRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/groups', contactGroupRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/naming', namingRoutes);
 
 // Static Frontend Serving (Desktop & Production Mode)
 const possibleFrontendPaths = [

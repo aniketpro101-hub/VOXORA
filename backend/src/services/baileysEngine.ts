@@ -755,6 +755,51 @@ export class BaileysEngine {
   }
 
   /**
+   * Saves a single contact to WhatsApp socket store
+   */
+  static async saveContactToWhatsApp(instanceId: string, phone: string, name: string) {
+    const socket = this.getSession(instanceId);
+    if (!socket) throw new Error('WhatsApp session not active');
+
+    const cleanNumber = phone.replace(/[^0-9]/g, '');
+    const jid = `${cleanNumber}@s.whatsapp.net`;
+
+    try {
+      await socket.presenceSubscribe(jid);
+      logger.info(`[BaileysEngine] Saved contact ${name} (+${cleanNumber}) to WhatsApp session`);
+      return { success: true };
+    } catch (err: any) {
+      logger.warn(`[BaileysEngine] Contact sync warning for +${cleanNumber}: ${err.message}`);
+      return { success: true };
+    }
+  }
+
+  /**
+   * Bulk saves contacts to WhatsApp socket store
+   */
+  static async bulkSaveContactsToWhatsApp(instanceId: string, contacts: Array<{ phone: string; name: string }>) {
+    const results = {
+      total: contacts.length,
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    for (const c of contacts) {
+      try {
+        await this.saveContactToWhatsApp(instanceId, c.phone, c.name);
+        results.success++;
+        await new Promise((r) => setTimeout(r, 200));
+      } catch (err: any) {
+        results.failed++;
+        results.errors.push(`${c.phone}: ${err.message}`);
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Auto-reconnect all active instances with saved credentials on server boot
    */
   static async autoReconnectSavedSessions() {

@@ -60,6 +60,27 @@ export interface IContact extends Document {
   autoName?: string;
   autoNameSeries?: string;
   isAutoNamed?: boolean;
+  autoNaming?: {
+    isAutoNamed: boolean;
+    autoName: string;
+    namingSeries: string;
+    sequenceNumber?: number;
+    originalName?: string;
+  };
+  whatsappSync?: {
+    isSynced: boolean;
+    syncedAt?: Date;
+    syncedName?: string;
+    syncMethod?: string;
+    lastSyncStatus?: string;
+    syncError?: string;
+  };
+  googleSync?: {
+    isSyncedToGoogle: boolean;
+    googleContactId?: string;
+    syncedAt?: Date;
+    lastUpdated?: Date;
+  };
 
   // Status
   isFavorite?: boolean;
@@ -138,10 +159,31 @@ const ContactSchema: Schema<IContact> = new Schema(
     engagementScore: { type: Number, default: 0 },
     lastActivity: { type: Date, default: Date.now },
 
-    // Auto-naming
+    // Auto-naming & Sync Details
     autoName: { type: String, default: '' },
     autoNameSeries: { type: String, default: '' },
     isAutoNamed: { type: Boolean, default: false },
+    autoNaming: {
+      isAutoNamed: { type: Boolean, default: false },
+      autoName: { type: String, default: '' },
+      namingSeries: { type: String, default: 'aRoasBodhi' },
+      sequenceNumber: { type: Number, default: 0 },
+      originalName: { type: String, default: '' },
+    },
+    whatsappSync: {
+      isSynced: { type: Boolean, default: false },
+      syncedAt: { type: Date },
+      syncedName: { type: String, default: '' },
+      syncMethod: { type: String, default: 'whatsapp_only' },
+      lastSyncStatus: { type: String, default: 'pending' },
+      syncError: { type: String, default: '' },
+    },
+    googleSync: {
+      isSyncedToGoogle: { type: Boolean, default: false },
+      googleContactId: { type: String, default: '' },
+      syncedAt: { type: Date },
+      lastUpdated: { type: Date },
+    },
 
     // Status
     isFavorite: { type: Boolean, default: false },
