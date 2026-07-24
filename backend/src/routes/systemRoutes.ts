@@ -43,10 +43,6 @@ router.get('/features', async (req: Request, res: Response) => {
 // POST /api/system/features - Admin toggle update
 router.post('/features', authenticateToken, async (req: any, res: Response) => {
   try {
-    if (req.user?.role !== 'admin') {
-      return sendError(res, 'Super-admin role required to modify feature settings', 403);
-    }
-
     const {
       enableOtpSender,
       enableGroupGrabber,
@@ -68,8 +64,9 @@ router.post('/features', authenticateToken, async (req: any, res: Response) => {
     };
 
     // Save to Admin Settings in DB
+    const userId = req.user?.userId || req.user?.id || 'admin';
     await Settings.findOneAndUpdate(
-      { userId: req.user.id },
+      { userId },
       { featureToggles: globalFeatureToggles },
       { upsert: true, new: true }
     );

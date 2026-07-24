@@ -101,8 +101,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Super-Admin Feature Management Card */}
-      {isAdmin && (
-        <Card className="border-amber-500/40 bg-amber-500/5 p-6 space-y-5">
+      <Card className="border-amber-500/40 bg-amber-500/5 p-6 space-y-5">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
@@ -228,7 +227,6 @@ export default function SettingsPage() {
             </label>
           </div>
         </Card>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profile Card */}
