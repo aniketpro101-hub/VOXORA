@@ -86,6 +86,17 @@ export default function SpeedModeSelector({
         </span>
       </div>
 
+      {instanceCount > 1 && (
+        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-xs text-primary font-bold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            ⚡ <b>Multi-SIM Load Balancing Active ({instanceCount} Accounts)</b>
+          </span>
+          <span className="text-[11px] font-normal text-muted-foreground">
+            Total capacity multiplies while keeping individual account ban risk ultra-low!
+          </span>
+        </div>
+      )}
+
       {/* Speed Mode Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {modes.map((mode) => {
@@ -128,8 +139,8 @@ export default function SpeedModeSelector({
                   </b>
                 </div>
                 <div className="p-1.5 rounded-lg bg-background border border-border">
-                  <span className="text-muted-foreground block">Per Hour</span>
-                  <b className="text-foreground">{mode.hourlyLimit} msgs</b>
+                  <span className="text-muted-foreground block">{instanceCount > 1 ? `Total / Hr (${instanceCount} SIMs)` : 'Per Hour'}</span>
+                  <b className="text-primary">{mode.hourlyLimit * instanceCount} msgs</b>
                 </div>
               </div>
 
