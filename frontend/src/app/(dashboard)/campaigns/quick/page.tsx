@@ -71,8 +71,15 @@ function QuickCampaignForm() {
 
   const [recentCampaigns, setRecentCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOtpEnabled, setIsOtpEnabled] = useState(false); // Default OFF!
 
   useEffect(() => {
+    apiClient.get('/system/features').then((res) => {
+      if (res.data?.data?.enableOtpSender !== undefined) {
+        setIsOtpEnabled(!!res.data.data.enableOtpSender);
+      }
+    }).catch(() => {});
+
     instanceApi.getInstances().then((res) => {
       setInstances(res || []);
       if (res && res.length > 0) setSelectedInstanceId(res[0].instanceId);
@@ -279,6 +286,18 @@ function QuickCampaignForm() {
               Native Flow CTA Copy
             </span>
           </div>
+
+          {!isOtpEnabled && (
+            <div className="p-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs flex items-center gap-3">
+              <Key className="h-6 w-6 text-rose-400 shrink-0" />
+              <div>
+                <p className="font-extrabold text-sm text-rose-300">🔐 OTP Sender Feature is Turned Off (On Hold)</p>
+                <p className="text-rose-200/90 text-[11px]">
+                  Super Admin has currently turned off OTP generation. You can enable this feature anytime in <b>Settings & Admin Controls</b>.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4 text-xs">

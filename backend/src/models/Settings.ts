@@ -22,6 +22,15 @@ export interface ISettings extends Document {
     end: string;
     timezone: string;
   };
+  featureToggles: {
+    enableOtpSender: boolean;
+    enableGroupGrabber: boolean;
+    enableStatusComposer: boolean;
+    enableCarousel: boolean;
+    enableButtons: boolean;
+    enableAutoReply: boolean;
+    enableBlacklist: boolean;
+  };
   timezone: string;
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +58,15 @@ const SettingsSchema: Schema<ISettings> = new Schema(
       start: { type: String, default: '09:00' },
       end: { type: String, default: '18:00' },
       timezone: { type: String, default: 'Asia/Kolkata' },
+    },
+    featureToggles: {
+      enableOtpSender: { type: Boolean, default: false }, // Default OFF as requested!
+      enableGroupGrabber: { type: Boolean, default: true },
+      enableStatusComposer: { type: Boolean, default: true },
+      enableCarousel: { type: Boolean, default: true },
+      enableButtons: { type: Boolean, default: true },
+      enableAutoReply: { type: Boolean, default: true },
+      enableBlacklist: { type: Boolean, default: true },
     },
     timezone: { type: String, default: 'Asia/Kolkata' },
   },
