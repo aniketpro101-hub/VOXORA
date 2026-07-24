@@ -133,6 +133,18 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       role: user.role,
     });
 
+    // Blacklist old refresh token if present during new login
+    const oldRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (oldRefreshToken) {
+      try {
+        await BlacklistedToken.create({
+          token: oldRefreshToken,
+          reason: 'login_superseded',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+      } catch (e) {}
+    }
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

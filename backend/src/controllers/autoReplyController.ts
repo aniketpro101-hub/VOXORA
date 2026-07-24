@@ -11,6 +11,12 @@ import { AuthRequest } from '../middleware/auth.js';
 const ENCRYPTION_KEY = process.env.AI_CONFIG_ENCRYPTION_KEY || 'voxora_ai_encryption_key_dev_change_in_production';
 const ALGORITHM = 'aes-256-cbc';
 
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.AI_CONFIG_ENCRYPTION_KEY || process.env.AI_CONFIG_ENCRYPTION_KEY.includes('dev_change')) {
+    throw new Error('FATAL SECURITY ERROR: AI_CONFIG_ENCRYPTION_KEY environment variable is required in production mode.');
+  }
+}
+
 function encryptApiKey(plainText: string): string {
   if (!plainText) return '';
   const iv = crypto.randomBytes(16);

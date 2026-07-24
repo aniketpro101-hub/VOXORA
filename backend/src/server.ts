@@ -166,6 +166,10 @@ connectDB()
   })
   .catch((err) => {
     logger.error('Database connection error during boot:', err);
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('FATAL: Database connection failed during boot in production. Exiting process.');
+      process.exit(1);
+    }
     server.listen(PORT, () => {
       logger.info(`🚀 VOXORA Backend running on port ${PORT} (Offline/Fallback Mode)`);
     });

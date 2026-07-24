@@ -30,8 +30,10 @@ export default function CampaignLiveClientPage() {
       fetchCampaignDetails();
       fetchLogs();
 
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('voxora_access_token') : null;
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000/instances', {
         transports: ['websocket'],
+        auth: { token: accessToken },
       });
 
       socket.on(`campaign:${campaignId}:progress`, (data: any) => {
