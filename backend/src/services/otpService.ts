@@ -64,8 +64,8 @@ export class OTPService {
       logger.info(`🔑 [OTP LOG] Verification Code for ${cleanPhone}: ${code}`);
       return {
         success: true,
-        message: 'OTP generated. (WhatsApp instance offline - code logged in server logs).',
-        devCode: process.env.NODE_ENV !== 'production' ? code : undefined,
+        message: 'OTP generated. (No system WhatsApp instance online - verification code provided below).',
+        devCode: code,
       };
     }
 
