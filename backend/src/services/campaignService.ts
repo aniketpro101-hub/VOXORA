@@ -265,13 +265,22 @@ export class CampaignService {
             const singleMedia = mediaFiles[mIdx];
             // Include caption with the first image
             const caption = mIdx === 0 ? finalPayloadText : '';
-            await BaileysEngine.sendMessage(instanceIdStr, c.phone, caption, { mediaUrl: singleMedia });
+            await BaileysEngine.sendWithFallback(instanceIdStr, c.phone, {
+              text: caption,
+              mediaUrl: singleMedia,
+              buttons: mIdx === 0 ? (campaign.buttons as any) : undefined,
+              listMenu: mIdx === 0 ? (campaign.listMenu as any) : undefined,
+            });
             if (mIdx < mediaFiles.length - 1) {
               await new Promise((r) => setTimeout(r, 600)); // Delay buffer between multi-images
             }
           }
         } else {
-          await BaileysEngine.sendMessage(instanceIdStr, c.phone, finalPayloadText);
+          await BaileysEngine.sendWithFallback(instanceIdStr, c.phone, {
+            text: finalPayloadText,
+            buttons: campaign.buttons as any,
+            listMenu: campaign.listMenu as any,
+          });
         }
 
         // Log successful message dispatch with button details

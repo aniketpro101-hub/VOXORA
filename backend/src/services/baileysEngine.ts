@@ -1,10 +1,11 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, proto } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
 import { logger } from '../utils/logger.js';
 import { Instance } from '../models/Instance.js';
 import { emitInstanceEvent } from './socketService.js';
+import messageFallbackEngine, { ButtonItem, ListSection, CarouselCard } from './messageFallbackEngine.js';
 
 export class BaileysEngine {
   private static sessions: Map<string, any> = new Map();
@@ -143,6 +144,9 @@ export class BaileysEngine {
     }
   }
 
+  /**
+   * Primary text & media message sender
+   */
   static async sendMessage(
     instanceId: string,
     phone: string,
@@ -188,6 +192,99 @@ export class BaileysEngine {
     }
 
     return await socket.sendMessage(jid, { text: textContent });
+  }
+
+  /**
+   * Phase C: Interactive Quick Reply & CTA Buttons Sender
+   */
+  static async sendButtons(instanceId: string, phone: string, data: { text: string; buttons: ButtonItem[]; footer?: string }) {
+    const socket = this.getSession(instanceId);
+    if (!socket) throw new Error('WhatsApp instance not connected.');
+
+    const cleanNumber = phone.replace(/[^0-9]/g, '');
+    const jid = `${cleanNumber}@s.whatsapp.net`;
+
+    const buttonMessage: any = {
+      text: data.text,
+      footer: data.footer || 'Powered by VOXORA',
+      buttons: data.buttons.map((b, idx) => ({
+        buttonId: b.id || `btn_${idx + 1}`,
+        buttonText: { displayText: b.text },
+        type: 1,
+      })),
+      headerType: 1,
+    };
+
+    return await socket.sendMessage(jid, buttonMessage);
+  }
+
+  /**
+   * Phase C: Interactive List Menu Sender
+   */
+  static async sendList(instanceId: string, phone: string, data: { title: string; text: string; buttonText?: string; sections: ListSection[]; footer?: string }) {
+    const socket = this.getSession(instanceId);
+    if (!socket) throw new Error('WhatsApp instance not connected.');
+
+    const cleanNumber = phone.replace(/[^0-9]/g, '');
+    const jid = `${cleanNumber}@s.whatsapp.net`;
+
+    const listMessage: any = {
+      text: data.text,
+      title: data.title,
+      buttonText: data.buttonText || 'Select Option',
+      footer: data.footer || 'VOXORA Interactive',
+      sections: data.sections,
+    };
+
+    return await socket.sendMessage(jid, listMessage);
+  }
+
+  /**
+   * Phase C: Interactive Buttons with Automatic Graceful Fallback Engine
+   */
+  static async sendWithFallback(
+    instanceId: string,
+    phone: string,
+    payload: {
+      text: string;
+      mediaUrl?: string;
+      buttons?: ButtonItem[];
+      listMenu?: { title: string; text: string; sections: ListSection[] };
+      carouselCards?: CarouselCard[];
+    }
+  ) {
+    const { text, mediaUrl, buttons, listMenu, carouselCards } = payload;
+
+    // 1. If buttons exist, attempt native button dispatch first
+    if (buttons && buttons.length > 0) {
+      try {
+        return await this.sendButtons(instanceId, phone, { text, buttons });
+      } catch (buttonErr: any) {
+        logger.warn(`[Baileys Engine] Native button dispatch failed (${buttonErr.message}). Switching to Automatic Text Fallback.`);
+        const fallbackText = messageFallbackEngine.buttonsToText(text, buttons);
+        return await this.sendMessage(instanceId, phone, fallbackText, { mediaUrl });
+      }
+    }
+
+    // 2. If list menu exists, attempt native list dispatch first
+    if (listMenu) {
+      try {
+        return await this.sendList(instanceId, phone, listMenu);
+      } catch (listErr: any) {
+        logger.warn(`[Baileys Engine] Native list menu dispatch failed (${listErr.message}). Switching to Automatic Text Fallback.`);
+        const fallbackText = messageFallbackEngine.listToText(listMenu);
+        return await this.sendMessage(instanceId, phone, fallbackText, { mediaUrl });
+      }
+    }
+
+    // 3. If carousel cards exist, format as multi-section fallback
+    if (carouselCards && carouselCards.length > 0) {
+      const fallbackText = messageFallbackEngine.carouselToText(text, carouselCards);
+      return await this.sendMessage(instanceId, phone, fallbackText, { mediaUrl });
+    }
+
+    // 4. Default plain text / media dispatch
+    return await this.sendMessage(instanceId, phone, text, { mediaUrl });
   }
 
   static async checkOnWhatsApp(instanceId: string, phone: string): Promise<boolean> {
