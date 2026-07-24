@@ -212,7 +212,10 @@ export default function Sidebar() {
           )}
           {!collapsed && (
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                window.location.href = '/login';
+              }}
               className="rounded-lg p-1 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
               title="Logout"
             >

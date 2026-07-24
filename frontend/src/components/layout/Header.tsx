@@ -63,6 +63,20 @@ export default function Header() {
             {user?.name || 'Account'}
           </span>
         </Link>
+
+        {/* Prominent Logout Button */}
+        <button
+          onClick={() => {
+            const { logout } = useAuthStore.getState();
+            logout();
+            window.location.href = '/login';
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-colors shrink-0"
+          title="Sign Out of VOXORA"
+        >
+          <User className="h-3.5 w-3.5 hidden" />
+          <span>Logout</span>
+        </button>
       </div>
     </header>
   );
