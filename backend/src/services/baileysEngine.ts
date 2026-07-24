@@ -649,48 +649,191 @@ export class BaileysEngine {
   }
 
   /**
-   * Phase C: Interactive Quick Reply & CTA Buttons Sender
+   * Phase C: Interactive Quick Reply & CTA Buttons Sender (Baileys v7 interactiveMessage format)
    */
-  static async sendButtons(instanceId: string, phone: string, data: { text: string; buttons: ButtonItem[]; footer?: string }) {
+  static async sendButtons(
+    instanceId: string,
+    phone: string,
+    data: { text: string; buttons: ButtonItem[]; footer?: string; title?: string }
+  ) {
     const socket = this.getSession(instanceId);
     if (!socket) throw new Error('WhatsApp instance not connected.');
 
     const cleanNumber = phone.replace(/[^0-9]/g, '');
     const jid = `${cleanNumber}@s.whatsapp.net`;
 
+    const nativeButtons = data.buttons.map((btn, idx) => {
+      const params: any = { display_text: btn.text };
+      let name = 'quick_reply';
+
+      if (btn.type === 'url' || (btn as any).url) {
+        name = 'cta_url';
+        params.url = (btn as any).url;
+        params.merchant_url = (btn as any).url;
+      } else if (btn.type === 'call' || (btn as any).phone) {
+        name = 'cta_call';
+        params.phone_number = (btn as any).phone;
+      } else if (btn.type === 'copy' || (btn as any).copyCode) {
+        name = 'cta_copy';
+        params.copy_code = (btn as any).copyCode;
+      } else {
+        name = 'quick_reply';
+        params.id = btn.id || `btn_${idx + 1}`;
+      }
+
+      return {
+        name,
+        buttonParamsJson: JSON.stringify(params),
+      };
+    });
+
     const buttonMessage: any = {
-      text: data.text,
-      footer: data.footer || 'Powered by VOXORA',
-      buttons: data.buttons.map((b, idx) => ({
-        buttonId: b.id || `btn_${idx + 1}`,
-        buttonText: { displayText: b.text },
-        type: 1,
-      })),
-      headerType: 1,
+      interactiveMessage: {
+        header: data.title
+          ? {
+              title: data.title,
+              hasMediaAttachment: false,
+            }
+          : undefined,
+        body: {
+          text: data.text,
+        },
+        footer: {
+          text: data.footer || 'Powered by VOXORA',
+        },
+        nativeFlowMessage: {
+          buttons: nativeButtons,
+          messageParamsJson: '',
+        },
+      },
     };
 
-    return await socket.sendMessage(jid, buttonMessage);
+    return await socket.sendMessage(jid, {
+      viewOnce: true,
+      ...buttonMessage,
+    });
   }
 
   /**
-   * Phase C: Interactive List Menu Sender
+   * Phase C: Interactive List Menu Sender (Baileys v7 interactiveMessage format)
    */
-  static async sendList(instanceId: string, phone: string, data: { title: string; text: string; buttonText?: string; sections: ListSection[]; footer?: string }) {
+  static async sendList(
+    instanceId: string,
+    phone: string,
+    data: { title: string; text: string; buttonText?: string; sections: ListSection[]; footer?: string }
+  ) {
     const socket = this.getSession(instanceId);
     if (!socket) throw new Error('WhatsApp instance not connected.');
 
     const cleanNumber = phone.replace(/[^0-9]/g, '');
     const jid = `${cleanNumber}@s.whatsapp.net`;
 
-    const listMessage: any = {
-      text: data.text,
-      title: data.title,
-      buttonText: data.buttonText || 'Select Option',
-      footer: data.footer || 'VOXORA Interactive',
-      sections: data.sections,
+    const listSections = data.sections.map((section) => ({
+      title: section.title,
+      rows: section.rows.map((row: any) => ({
+        header: row.title || row.name || '',
+        title: row.title || row.name || '',
+        description: row.description || '',
+        id: row.id || row.name || '',
+      })),
+    }));
+
+    const listButtonParams = {
+      title: data.buttonText || 'Select Option',
+      sections: listSections,
     };
 
-    return await socket.sendMessage(jid, listMessage);
+    const listMessage: any = {
+      interactiveMessage: {
+        header: {
+          title: data.title || '',
+          hasMediaAttachment: false,
+        },
+        body: {
+          text: data.text,
+        },
+        footer: {
+          text: data.footer || 'VOXORA Interactive',
+        },
+        nativeFlowMessage: {
+          buttons: [
+            {
+              name: 'single_select',
+              buttonParamsJson: JSON.stringify(listButtonParams),
+            },
+          ],
+          messageParamsJson: '',
+        },
+      },
+    };
+
+    return await socket.sendMessage(jid, {
+      viewOnce: true,
+      ...listMessage,
+    });
+  }
+
+  /**
+   * Phase C: Interactive Image with Buttons (Baileys v7 interactiveMessage format)
+   */
+  static async sendImageWithButtons(
+    instanceId: string,
+    phone: string,
+    data: { imageUrl: string; caption: string; buttons: ButtonItem[]; footer?: string }
+  ) {
+    const socket = this.getSession(instanceId);
+    if (!socket) throw new Error('WhatsApp instance not connected.');
+
+    const cleanNumber = phone.replace(/[^0-9]/g, '');
+    const jid = `${cleanNumber}@s.whatsapp.net`;
+
+    const nativeButtons = data.buttons.map((btn, idx) => {
+      const params: any = { display_text: btn.text };
+      let name = 'quick_reply';
+
+      if (btn.type === 'url' || (btn as any).url) {
+        name = 'cta_url';
+        params.url = (btn as any).url;
+        params.merchant_url = (btn as any).url;
+      } else if (btn.type === 'call' || (btn as any).phone) {
+        name = 'cta_call';
+        params.phone_number = (btn as any).phone;
+      } else if (btn.type === 'copy' || (btn as any).copyCode) {
+        name = 'cta_copy';
+        params.copy_code = (btn as any).copyCode;
+      } else {
+        name = 'quick_reply';
+        params.id = btn.id || `btn_${idx + 1}`;
+      }
+
+      return { name, buttonParamsJson: JSON.stringify(params) };
+    });
+
+    const message: any = {
+      interactiveMessage: {
+        header: {
+          hasMediaAttachment: true,
+          imageMessage: {
+            url: data.imageUrl,
+          },
+        },
+        body: {
+          text: data.caption,
+        },
+        footer: {
+          text: data.footer || 'Powered by VOXORA',
+        },
+        nativeFlowMessage: {
+          buttons: nativeButtons,
+          messageParamsJson: '',
+        },
+      },
+    };
+
+    return await socket.sendMessage(jid, {
+      viewOnce: true,
+      ...message,
+    });
   }
 
   /**
@@ -712,7 +855,12 @@ export class BaileysEngine {
     // 1. If buttons exist, attempt native button dispatch first
     if (buttons && buttons.length > 0) {
       try {
-        return await this.sendButtons(instanceId, phone, { text, buttons });
+        const result = await this.sendButtons(instanceId, phone, { text, buttons });
+        if (result && result.key && result.key.id) {
+          logger.info(`[Baileys Engine] Native interactive buttons sent to ${phone} (${result.key.id})`);
+          return result;
+        }
+        throw new Error('No message ID returned from sendButtons');
       } catch (buttonErr: any) {
         logger.warn(`[Baileys Engine] Native button dispatch failed (${buttonErr.message}). Switching to Automatic Text Fallback.`);
         const fallbackText = messageFallbackEngine.buttonsToText(text, buttons);
@@ -723,7 +871,12 @@ export class BaileysEngine {
     // 2. If list menu exists, attempt native list dispatch first
     if (listMenu) {
       try {
-        return await this.sendList(instanceId, phone, listMenu);
+        const result = await this.sendList(instanceId, phone, listMenu);
+        if (result && result.key && result.key.id) {
+          logger.info(`[Baileys Engine] Native interactive list menu sent to ${phone} (${result.key.id})`);
+          return result;
+        }
+        throw new Error('No message ID returned from sendList');
       } catch (listErr: any) {
         logger.warn(`[Baileys Engine] Native list menu dispatch failed (${listErr.message}). Switching to Automatic Text Fallback.`);
         const fallbackText = messageFallbackEngine.listToText(listMenu);

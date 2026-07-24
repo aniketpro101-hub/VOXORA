@@ -1,6 +1,7 @@
 import { Campaign } from '../models/Campaign.js';
 import { CampaignService } from './campaignService.js';
 import { cleanupExpiredFiles } from './uploadService.js';
+import { VCardExportService } from './vcardExportService.js';
 import { logger } from '../utils/logger.js';
 
 export class SchedulerService {
@@ -31,10 +32,11 @@ export class SchedulerService {
       }
     }, 10000);
 
-    // Hourly 48-Hour Storage Cleanup Job
+    // Hourly 48-Hour Storage & vCard Export Cleanup Job
     this.cleanupTimer = setInterval(async () => {
       try {
         await cleanupExpiredFiles();
+        VCardExportService.cleanupExpiredExports();
       } catch (err: any) {
         logger.error(`[Cleanup Cron Error] ${err.message}`);
       }
