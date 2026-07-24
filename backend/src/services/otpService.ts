@@ -51,27 +51,21 @@ export class OTPService {
     let sentViaWhatsApp = false;
     try {
       const activeInstance = await Instance.findOne({ status: 'open' });
-      if (activeInstance?.instanceId) {
-        await BaileysEngine.sendMessage(activeInstance.instanceId, cleanPhone, otpMessage);
-        sentViaWhatsApp = true;
-        logger.info(`[OTP Service] Sent OTP to ${cleanPhone} via instance ${activeInstance.instanceId}`);
+      if (!activeInstance?.instanceId) {
+        throw new Error('System WhatsApp Gateway is offline. Admin must connect at least 1 WhatsApp account in /instances to send OTPs to WhatsApp.');
       }
-    } catch (err: any) {
-      logger.warn(`[OTP Service] WhatsApp dispatch failed: ${err.message}`);
-    }
 
-    if (!sentViaWhatsApp) {
-      logger.info(`🔑 [OTP LOG] Verification Code for ${cleanPhone}: ${code}`);
-      return {
-        success: true,
-        message: 'OTP generated. (No system WhatsApp instance online - verification code provided below).',
-        devCode: code,
-      };
+      await BaileysEngine.sendMessage(activeInstance.instanceId, cleanPhone, otpMessage);
+      sentViaWhatsApp = true;
+      logger.info(`[OTP Service] Sent OTP to ${cleanPhone} via instance ${activeInstance.instanceId}`);
+    } catch (err: any) {
+      logger.error(`[OTP Service] WhatsApp dispatch error: ${err.message}`);
+      throw new Error(err.message || 'Failed to dispatch WhatsApp OTP');
     }
 
     return {
       success: true,
-      message: `OTP sent successfully to WhatsApp number +${cleanPhone}`,
+      message: `OTP code sent directly to your WhatsApp number (+${cleanPhone})`,
     };
   }
 

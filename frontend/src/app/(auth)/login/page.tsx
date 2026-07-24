@@ -35,7 +35,6 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
   const [resendTimer, setResendTimer] = useState(0);
-  const [devCodeBanner, setDevCodeBanner] = useState<string | null>(null);
 
   // General Loading & Setup Check
   const [isLoading, setIsLoading] = useState(false);
@@ -81,16 +80,9 @@ export default function LoginPage() {
 
     const fullPhone = getFullPhone();
     setIsLoading(true);
-    setDevCodeBanner(null);
     try {
       const res = await apiClient.post('/auth/otp/request', { phone: fullPhone });
-      toast.success(res.data?.message || 'OTP code generated!');
-      
-      if (res.data?.data?.devCode) {
-        setDevCodeBanner(res.data.data.devCode);
-        setOtpCode(res.data.data.devCode);
-      }
-
+      toast.success(res.data?.message || 'OTP code sent to your WhatsApp!');
       setOtpStep('verify');
       setResendTimer(60);
     } catch (err: any) {
@@ -219,11 +211,6 @@ export default function LoginPage() {
               </form>
             ) : (
               <form onSubmit={handleVerifyOTP} className="space-y-4">
-                {devCodeBanner && (
-                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-center text-xs text-emerald-300 font-medium">
-                    🔑 Verification Code: <span className="font-mono font-bold text-sm text-emerald-200">{devCodeBanner}</span>
-                  </div>
-                )}
                 <div>
                   <Input
                     label="6-Digit OTP Code"
