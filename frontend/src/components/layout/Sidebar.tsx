@@ -22,6 +22,8 @@ import {
   ChevronDown,
   LogOut,
   Zap,
+  Camera,
+  UserPlus,
 } from 'lucide-react';
 
 interface NavChild {
@@ -57,7 +59,7 @@ export default function Sidebar() {
       icon: Send,
       children: [
         { label: 'All Campaigns', href: '/campaigns' },
-        { label: '⚡ Quick Send', href: '/campaigns/quick' },
+        { label: '⚡ Quick Send & OTP', href: '/campaigns/quick' },
         { label: '+ New Campaign', href: '/campaigns/new' },
       ],
     },
@@ -70,6 +72,8 @@ export default function Sidebar() {
         { label: 'CRM Pipeline', href: '/crm' },
       ],
     },
+    { label: 'Group Grabber', href: '/groups', icon: UserPlus },
+    { label: 'Status & Stories', href: '/status', icon: Camera },
     { label: 'WhatsApp Numbers', href: '/instances', icon: Smartphone },
     { label: 'Reports & Analytics', href: '/analytics', icon: BarChart3 },
     { label: 'Blacklist System', href: '/blacklist', icon: ShieldAlert },

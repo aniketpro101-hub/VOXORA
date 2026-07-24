@@ -15,11 +15,13 @@ import {
   applyAdminOverride,
   getInstanceStats,
   getAllInstancesHealth,
-  createInstanceSchema,
-  pairingCodeSchema,
 } from '../controllers/instanceController.js';
+import {
+  getGroups,
+  getGroupMembers,
+  syncGroupToContacts,
+} from '../controllers/messageController.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
@@ -43,5 +45,10 @@ router.post('/:id/age', updateAccountAge);
 router.post('/:id/override', applyAdminOverride);
 router.get('/:id/stats', getInstanceStats);
 router.get('/health/all', getAllInstancesHealth);
+
+// WhAPI Group Grabber Routes
+router.get('/:id/groups', getGroups);
+router.get('/:id/groups/:groupJid/members', getGroupMembers);
+router.post('/:id/groups/:groupJid/sync', syncGroupToContacts);
 
 export default router;

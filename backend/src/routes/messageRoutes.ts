@@ -13,6 +13,9 @@ import {
   verifyNumber,
   sendTest,
   previewMessage,
+  sendOTP,
+  sendReaction,
+  postStatus,
 } from '../controllers/messageController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { agentAndAbove } from '../middleware/rbac.js';
@@ -32,6 +35,9 @@ router.post('/send-buttons', sendButtons);
 router.post('/send-list', sendList);
 router.post('/send-media-buttons', sendMediaButtons);
 router.post('/send-carousel', sendCarousel);
+router.post('/send-otp', sendOTP);
+router.post('/send-reaction', sendReaction);
+router.post('/post-status', postStatus);
 router.post('/verify-number', verifyNumber);
 router.post('/test', sendTest);
 router.post('/preview', previewMessage);
