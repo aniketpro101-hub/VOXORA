@@ -51,12 +51,18 @@ export class AutoNamingService {
    * Auto-names a single contact according to user config and collision rules
    */
   static async autoNameContact(contactId: string, userId?: string) {
-    const contact = await Contact.findById(contactId);
-    if (!contact) throw new Error('Contact not found');
+    const query: any = { _id: contactId };
+    if (userId) query.createdBy = userId;
+
+    const contact = await Contact.findOne(query);
+    if (!contact) throw new Error('Contact not found or access denied');
 
     const config = await this.getOrCreateConfig(userId);
 
-    const hasOriginalName = Boolean(contact.name && contact.name.trim() && !contact.isAutoNamed);
+    // Save original name BEFORE modifying contact.name
+    const savedOriginalName = contact.autoNaming?.originalName || contact.name || '';
+
+    const hasOriginalName = Boolean(savedOriginalName && savedOriginalName.trim() && !contact.isAutoNamed);
 
     let finalName = '';
     let seqNumber = 0;
@@ -66,9 +72,9 @@ export class AutoNamingService {
       if (config.existingNameHandling === 'keep') {
         return contact; // Do not touch existing name
       } else if (config.existingNameHandling === 'prefix') {
-        finalName = `${config.existingNamePrefix || 'aRoasBodhi_'}${contact.name}`;
+        finalName = `${config.existingNamePrefix || 'aRoasBodhi_'}${savedOriginalName}`;
       } else if (config.existingNameHandling === 'suffix') {
-        finalName = `${contact.name}${config.existingNameSuffix || '_aRoasBodhi'}`;
+        finalName = `${savedOriginalName}${config.existingNameSuffix || '_aRoasBodhi'}`;
       } else {
         // replace mode
         const generated = await this.generateNextName(userId);
@@ -94,7 +100,7 @@ export class AutoNamingService {
       autoName: finalName,
       namingSeries: seriesName,
       sequenceNumber: seqNumber,
-      originalName: contact.name || '',
+      originalName: savedOriginalName,
     };
 
     await contact.save();
@@ -127,11 +133,28 @@ export class AutoNamingService {
   }
 
   /**
-   * Updates user's auto-naming configuration
+   * Updates user's auto-naming configuration (Whitelisted field updates)
    */
   static async updateConfig(userId: string | undefined, updates: any) {
     const config = await this.getOrCreateConfig(userId);
-    Object.assign(config, updates);
+    const allowedFields = [
+      'seriesName',
+      'prefix',
+      'startNumber',
+      'paddingDigits',
+      'separator',
+      'suffix',
+      'existingNameHandling',
+      'existingNamePrefix',
+      'existingNameSuffix',
+    ];
+
+    for (const key of allowedFields) {
+      if (updates && updates[key] !== undefined) {
+        (config as any)[key] = updates[key];
+      }
+    }
+
     await config.save();
     return config;
   }

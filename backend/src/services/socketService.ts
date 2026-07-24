@@ -5,11 +5,16 @@ import { logger } from '../utils/logger.js';
 
 let io: Server | null = null;
 
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:4000,https://voxora.roasbodhi.in'
+)
+  .split(',')
+  .map((s) => s.trim());
+
 export const initSocketServer = (server: HTTPServer) => {
   io = new Server(server, {
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST'],
+      origin: allowedOrigins,
       credentials: true,
     },
   });
@@ -60,7 +65,7 @@ export const initSocketServer = (server: HTTPServer) => {
     });
   });
 
-  logger.info('✅ Socket.IO Server initialized with JWT Handshake Auth on /instances namespace');
+  logger.info('✅ Socket.IO Server initialized with restricted CORS & JWT Handshake Auth on /instances namespace');
   return io;
 };
 
@@ -81,7 +86,7 @@ export const emitInstanceEvent = (event: string, payload: any) => {
     if (targetId) {
       instanceNamespace.to(`instance:${targetId}`).emit(event, payload);
     } else {
-      instanceNamespace.emit(event, payload);
+      logger.warn(`[Socket.IO] emitInstanceEvent called without targetId for event "${event}". Skipping un-targeted broadcast for privacy.`);
     }
   }
 };

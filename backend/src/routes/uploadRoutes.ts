@@ -53,20 +53,39 @@ router.post('/media', uploadMiddleware.single('file'), async (req: AuthRequest, 
   }
 });
 
-router.post('/multiple', uploadMiddleware.array('files', 10), (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
-  if (!files || files.length === 0) {
-    return sendError(res, 'No files uploaded', 400);
+// ═══ MULTIPLE FILES UPLOAD WITH VALIDATION & QUOTA LOOP ═══
+router.post('/multiple', uploadMiddleware.array('files', 10), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return sendError(res, 'No files uploaded', 400);
+    }
+    const userId = req.user?.userId || 'dev-user';
+    const results = [];
+    for (const file of files) {
+      try {
+        const validated = await validateAndRecordUpload(req, file, userId);
+        results.push(validated);
+      } catch (error: any) {
+        results.push({
+          fileName: file.originalname,
+          error: error.message || 'File validation or quota check failed',
+        });
+      }
+    }
+    return sendSuccess(res, 'Files processed and validated', results, 201);
+  } catch (error) {
+    next(error);
   }
-  const fileDataList = files.map((file) => formatFileResponse(req, file));
-  return sendSuccess(res, 'Files uploaded successfully', fileDataList, 201);
 });
 
+// ═══ HARDENED DELETE ROUTE WITH ABSOLUTE BOUNDARY LOCK ═══
 router.delete('/:filePath(*)', (req: Request, res: Response) => {
   try {
     const relativePath = req.params.filePath;
     const uploadsDir = path.resolve(process.cwd(), 'uploads');
-    const fullPath = path.resolve(process.cwd(), relativePath);
+    const safeFileName = path.basename(path.normalize(relativePath));
+    const fullPath = path.join(uploadsDir, safeFileName);
 
     if (!fullPath.startsWith(uploadsDir)) {
       return sendError(res, 'Access denied: Cannot delete files outside uploads directory', 403);

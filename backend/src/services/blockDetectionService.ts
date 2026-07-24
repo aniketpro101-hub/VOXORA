@@ -4,23 +4,26 @@ import { logger } from '../utils/logger.js';
 
 export class BlockDetectionService {
   /**
-   * Detects potential recipient block events (messages sent but undelivered over 7 days)
+   * Detects potential recipient block events (rolling 7-14 day window)
    */
   static async detectPotentialBlocks(instanceId: string) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
     const potentialBlocks = await MessageLog.countDocuments({
       instanceId,
       status: 'sent',
-      sentAt: { $lt: sevenDaysAgo },
+      sentAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo },
       deliveredAt: { $exists: false },
       readAt: { $exists: false },
     });
 
     const totalRecentSent = await MessageLog.countDocuments({
       instanceId,
-      sentAt: { $lt: sevenDaysAgo },
+      sentAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo },
     });
 
     const blockRate = totalRecentSent > 0 ? (potentialBlocks / totalRecentSent) * 100 : 0;

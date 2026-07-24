@@ -41,9 +41,36 @@ export class VCardExportService {
   }
 
   /**
+   * Cleans up expired vCard export files older than 48 hours
+   */
+  static cleanupExpiredExports() {
+    try {
+      const exportDir = path.join(process.cwd(), 'uploads', 'exports');
+      if (!fs.existsSync(exportDir)) return;
+
+      const files = fs.readdirSync(exportDir);
+      const now = Date.now();
+      const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
+
+      for (const file of files) {
+        const filePath = path.join(exportDir, file);
+        const stats = fs.statSync(filePath);
+        if (now - stats.mtimeMs > ttlMs) {
+          fs.unlinkSync(filePath);
+          logger.info(`[vCardExport] Auto-cleaned expired export file: ${file}`);
+        }
+      }
+    } catch (err: any) {
+      logger.warn(`[vCardExport Cleanup Error] ${err.message}`);
+    }
+  }
+
+  /**
    * Saves vCard file to disk and returns download relative URL
    */
   static async exportToFile(contactIds: string[]): Promise<string> {
+    this.cleanupExpiredExports(); // Purge old exports
+
     const content = await this.exportContactsToVCard(contactIds);
 
     const exportDir = path.join(process.cwd(), 'uploads', 'exports');
