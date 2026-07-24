@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { User, IUser } from '../models/User.js';
 import { BlacklistedToken } from '../models/BlacklistedToken.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../services/jwtService.js';
@@ -387,6 +388,7 @@ export const verifyOTP = async (req: Request, res: Response, next: NextFunction)
           name: `WhatsApp User (+${cleanPhone})`,
           email: generatedEmail,
           phone: cleanPhone,
+          password: crypto.randomBytes(16).toString('hex'),
           role: 'agent',
           isActive: true,
         });

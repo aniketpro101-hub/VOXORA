@@ -74,7 +74,7 @@ export class OTPService {
    */
   static async verifyOTP(phone: string, code: string): Promise<boolean> {
     const cleanPhone = this.normalizePhone(phone);
-    const record = await OTPRecord.findOne({ phone: cleanPhone, isVerified: false });
+    const record = await OTPRecord.findOne({ phone: cleanPhone, isVerified: false }).sort({ createdAt: -1 });
 
     if (!record) {
       throw new Error('OTP expired or not requested. Please click resend.');
