@@ -244,20 +244,26 @@ export class CampaignService {
         }
       }
 
+      // Apply Zero-Width Invisible Character Injection to prevent automated text hashing
+      const finalPayloadText = AntibanEngine.injectZeroWidthChars(processedText);
+
+      // Simulate human typing presence before dispatching
+      await AntibanEngine.simulateTyping(instanceIdStr, c.phone, finalPayloadText.length);
+
       try {
         // Multi-image / Multi-media dispatch loop
         if (mediaFiles.length > 0) {
           for (let mIdx = 0; mIdx < mediaFiles.length; mIdx++) {
             const singleMedia = mediaFiles[mIdx];
             // Include caption with the first image
-            const caption = mIdx === 0 ? processedText : '';
+            const caption = mIdx === 0 ? finalPayloadText : '';
             await BaileysEngine.sendMessage(instanceIdStr, c.phone, caption, { mediaUrl: singleMedia });
             if (mIdx < mediaFiles.length - 1) {
               await new Promise((r) => setTimeout(r, 600)); // Delay buffer between multi-images
             }
           }
         } else {
-          await BaileysEngine.sendMessage(instanceIdStr, c.phone, processedText);
+          await BaileysEngine.sendMessage(instanceIdStr, c.phone, finalPayloadText);
         }
 
         // Log successful message dispatch with button details

@@ -274,4 +274,24 @@ export class AntibanEngine {
     }
     return { valid: true, formatted: clean };
   }
+
+  /**
+   * 16. Injects zero-width invisible characters (\u200B, \u200C) to break automated string hashes
+   */
+  static injectZeroWidthChars(text: string): string {
+    if (!text) return text;
+    const zwChars = ['\u200B', '\u200C', '\u200D'];
+    const words = text.split(' ');
+
+    return words
+      .map((word) => {
+        if (Math.random() < 0.35 && word.length > 2 && !word.startsWith('http')) {
+          const charToInsert = zwChars[Math.floor(Math.random() * zwChars.length)];
+          const insertIdx = Math.floor(Math.random() * (word.length - 1)) + 1;
+          return word.slice(0, insertIdx) + charToInsert + word.slice(insertIdx);
+        }
+        return word;
+      })
+      .join(' ');
+  }
 }
