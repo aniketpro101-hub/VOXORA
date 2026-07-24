@@ -1,6 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { logger } from '../utils/logger.js';
+import { verifyAccessToken } from './jwtService.js';
 
 let io: SocketIOServer | null = null;
 
@@ -20,8 +21,30 @@ export const initSocketServer = (httpServer: HttpServer): SocketIOServer => {
 
   const instanceNamespace = io.of('/instances');
 
+  // Socket.IO JWT Handshake Authentication Middleware
+  instanceNamespace.use((socket: Socket, next) => {
+    const token =
+      socket.handshake.auth?.token ||
+      socket.handshake.headers?.authorization?.replace('Bearer ', '') ||
+      (socket.handshake.query?.token as string);
+
+    if (!token) {
+      logger.warn(`[Socket.IO Auth] Connection rejected: Missing authentication token (${socket.id})`);
+      return next(new Error('Authentication required for socket connection'));
+    }
+
+    try {
+      const decoded = verifyAccessToken(token);
+      (socket as any).user = decoded;
+      next();
+    } catch (err: any) {
+      logger.warn(`[Socket.IO Auth] Connection rejected: Invalid token (${err.message})`);
+      return next(new Error('Invalid or expired socket token'));
+    }
+  });
+
   instanceNamespace.on('connection', (socket: Socket) => {
-    logger.info(`[Socket.IO] Client connected to /instances namespace (${socket.id})`);
+    logger.info(`[Socket.IO] Authenticated client connected to /instances namespace (${socket.id})`);
 
     socket.on('join:instance', (instanceId: string) => {
       socket.join(`instance:${instanceId}`);
@@ -37,7 +60,7 @@ export const initSocketServer = (httpServer: HttpServer): SocketIOServer => {
     });
   });
 
-  logger.info('✅ Socket.IO Server initialized on /instances namespace');
+  logger.info('✅ Socket.IO Server initialized with JWT Handshake Auth on /instances namespace');
   return io;
 };
 

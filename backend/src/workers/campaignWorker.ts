@@ -129,17 +129,26 @@ export function initCampaignWorker() {
           dbJob.errorMessage = error.message || 'Send failed';
           await dbJob.save();
 
-          campaign.failedCount += 1;
-          instance.consecutiveFailures += 1;
-          await campaign.save();
-          await instance.save();
+          // Atomic increment for failure counters
+          await Campaign.updateOne({ _id: campaign._id }, { $inc: { failedCount: 1 } });
+          const updatedInst = await Instance.findOneAndUpdate(
+            { _id: instance._id },
+            { $inc: { consecutiveFailures: 1 } },
+            { new: true }
+          );
+
+          const currentConsecutiveFailures = updatedInst?.consecutiveFailures || instance.consecutiveFailures + 1;
 
           // Auto-pause if failures exceed threshold
-          if (instance.consecutiveFailures >= (settings.pauseOnConsecutiveFailures || 5)) {
-            campaign.status = 'paused';
-            campaign.pausedByAutoAntiban = true;
-            campaign.pauseReason = `Auto-paused: ${instance.consecutiveFailures} consecutive failures`;
-            await campaign.save();
+          if (currentConsecutiveFailures >= (settings.pauseOnConsecutiveFailures || 5)) {
+            await Campaign.updateOne(
+              { _id: campaign._id },
+              {
+                status: 'paused',
+                pausedByAutoAntiban: true,
+                pauseReason: `Auto-paused: ${currentConsecutiveFailures} consecutive failures`,
+              }
+            );
             logger.warn(`[Antiban] Auto-paused campaign ${campaign._id} due to consecutive failures`);
           }
 

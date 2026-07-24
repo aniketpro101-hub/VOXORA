@@ -189,6 +189,13 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       role: user.role,
     });
 
+    // Blacklist the old refresh token upon rotation to prevent re-use
+    await BlacklistedToken.create({
+      token,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      reason: 'rotated',
+    });
+
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
