@@ -8,6 +8,7 @@ import ContactInfoFormatter from '../utils/contactInfoFormatter.js';
 import { BlacklistEngine } from './blacklistService.js';
 import { AntibanEngine } from './antibanService.js';
 import { AntibanSettings } from '../models/AntibanSettings.js';
+import IntelligentDistributor from './intelligentDistributor.js';
 import { logger } from '../utils/logger.js';
 
 export class CampaignService {
@@ -128,9 +129,16 @@ export class CampaignService {
       return;
     }
 
-    // Resolve actual Baileys socket instanceId string
-    let instanceIdStr = '';
-    if (campaign.instanceIds && campaign.instanceIds.length > 0) {
+    // Dynamic Capacity-Aware Intelligent SIM Selection (Phase B)
+    let activeInstanceDoc = null;
+    try {
+      activeInstanceDoc = await IntelligentDistributor.getBestInstance(campaignId);
+    } catch (distErr: any) {
+      logger.warn(`[Intelligent Distributor] Fallback lookup: ${distErr.message}`);
+    }
+
+    let instanceIdStr = activeInstanceDoc?.instanceId || '';
+    if (!instanceIdStr && campaign.instanceIds && campaign.instanceIds.length > 0) {
       const instDoc = await Instance.findById(campaign.instanceIds[0]);
       instanceIdStr = instDoc?.instanceId || (typeof campaign.instanceIds[0] === 'string' ? campaign.instanceIds[0] : '');
     }
@@ -285,6 +293,10 @@ export class CampaignService {
           { _id: campaignId },
           { $inc: { sentCount: 1, deliveredCount: 1, 'stats.sentCount': 1, 'stats.deliveredCount': 1 } }
         );
+
+        if (activeInstanceDoc?._id) {
+          await IntelligentDistributor.recordUsage(String(activeInstanceDoc._id), true);
+        }
       } catch (sendErr: any) {
         logger.warn(`[Campaign Engine] Failed sending to ${c.phone}: ${sendErr.message}`);
 
@@ -303,6 +315,10 @@ export class CampaignService {
           { _id: campaignId },
           { $inc: { failedCount: 1, 'stats.failedCount': 1 } }
         );
+
+        if (activeInstanceDoc?._id) {
+          await IntelligentDistributor.recordUsage(String(activeInstanceDoc._id), false);
+        }
       }
 
       // Anti-ban delay driven by user settings (default: 20s - 45s safe interval)

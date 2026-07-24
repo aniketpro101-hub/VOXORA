@@ -253,3 +253,98 @@ export const restartInstance = async (req: AuthRequest, res: Response, next: Nex
 };
 
 export const logoutInstance = disconnectInstance;
+
+export const updateAccountAge = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { days, isVerifiedEnterprise } = req.body;
+
+    if (days === undefined || isNaN(Number(days))) {
+      return sendError(res, 'Please provide valid account age in days', 400);
+    }
+
+    const { SmartLimitsService } = await import('../services/smartLimitsService.js');
+    const service = new SmartLimitsService();
+    const result = await service.applyToInstance(id, Number(days), !!isVerifiedEnterprise);
+
+    return sendSuccess(res, `Account age updated to ${days} days (${result.category.toUpperCase()} tier limits applied)`, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const applyAdminOverride = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { enabled, customDailyLimit, customHourlyLimit, customMinDelay, customMaxDelay, isVerifiedEnterprise, overrideReason } = req.body;
+
+    // Verify admin role
+    if (req.user?.role !== 'admin') {
+      return sendError(res, 'Super-admin role required to modify manual overrides', 403);
+    }
+
+    const { SmartLimitsService } = await import('../services/smartLimitsService.js');
+    const service = new SmartLimitsService();
+    const instance = await service.applyAdminOverride(id, {
+      enabled: !!enabled,
+      customDailyLimit: customDailyLimit ? Number(customDailyLimit) : undefined,
+      customHourlyLimit: customHourlyLimit ? Number(customHourlyLimit) : undefined,
+      customMinDelay: customMinDelay ? Number(customMinDelay) : undefined,
+      customMaxDelay: customMaxDelay ? Number(customMaxDelay) : undefined,
+      isVerifiedEnterprise: !!isVerifiedEnterprise,
+      overrideBy: req.user?.email || 'Admin',
+      overrideReason: overrideReason || 'Manual admin override',
+    });
+
+    return sendSuccess(res, `Admin override ${enabled ? 'enabled' : 'disabled'} for instance`, instance);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getInstanceStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const instance = await Instance.findById(id);
+
+    if (!instance) {
+      return sendError(res, 'Instance not found', 404);
+    }
+
+    return sendSuccess(res, 'Instance statistics retrieved', {
+      accountAge: instance.accountAge,
+      smartLimits: instance.smartLimits,
+      adminOverride: instance.adminOverride,
+      antibanHealth: instance.antibanHealth,
+      messageTiming: instance.messageTiming,
+      successRate: instance.successRate,
+      totalMessagesSent: instance.totalMessagesSent,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllInstancesHealth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const instances = await Instance.find({});
+    const healthSummary = instances.map((inst) => ({
+      id: inst._id,
+      name: inst.name,
+      phoneNumber: inst.phoneNumber,
+      status: inst.status,
+      accountAgeDays: inst.accountAge?.days || 1,
+      ageCategory: inst.accountAge?.ageCategory || 'new',
+      dailyLimit: inst.adminOverride?.enabled ? inst.adminOverride.customDailyLimit || inst.smartLimits?.dailyLimit || inst.dailyLimit : inst.smartLimits?.dailyLimit || inst.dailyLimit,
+      currentDayCount: inst.smartLimits?.currentDayCount || inst.currentDayCount || 0,
+      successRate: inst.successRate || 100,
+      circuitBreakerActive: inst.antibanHealth?.circuitBreakerActive || false,
+      needsRest: inst.antibanHealth?.needsRest || false,
+      isHealthy: !inst.antibanHealth?.circuitBreakerActive && !inst.antibanHealth?.needsRest && !inst.isBlocked,
+    }));
+
+    return sendSuccess(res, 'Instances health summary retrieved', healthSummary);
+  } catch (error) {
+    next(error);
+  }
+};
