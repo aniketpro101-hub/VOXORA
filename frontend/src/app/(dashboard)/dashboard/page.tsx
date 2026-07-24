@@ -22,6 +22,7 @@ import {
   BarChart2,
   Activity,
 } from 'lucide-react';
+import StorageDashboardWidget from '@/components/dashboard/StorageDashboardWidget';
 
 export default function DashboardOverviewPage() {
   const [stats, setStats] = useState({
@@ -168,6 +169,9 @@ export default function DashboardOverviewPage() {
           </Card>
         ))}
       </div>
+
+      {/* SECTION 2: STORAGE DASHBOARD WIDGET */}
+      <StorageDashboardWidget />
 
       {/* SECTION 3: RECENT ACTIVITY FEED */}
       <Card className="p-5 space-y-4">

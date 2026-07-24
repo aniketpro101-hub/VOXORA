@@ -1,7 +1,13 @@
-import { Router, Request, Response } from 'express';
-import { uploadMiddleware, formatFileResponse } from '../services/uploadService.js';
+import { Router, Request, Response, NextFunction } from 'express';
+import {
+  uploadMiddleware,
+  formatFileResponse,
+  validateAndRecordUpload,
+  getStorageInfo,
+} from '../services/uploadService.js';
+import validationService from '../services/validationService.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,12 +15,42 @@ const router = Router();
 
 router.use(authenticateToken);
 
-router.post('/media', uploadMiddleware.single('file'), (req: Request, res: Response) => {
-  if (!req.file) {
-    return sendError(res, 'No file uploaded', 400);
+// ═══ GET STORAGE USAGE INFO ═══
+router.get('/storage', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.userId || 'dev-user';
+    if (!userId) return sendError(res, 'User ID not found', 401);
+    const info = await getStorageInfo(userId);
+    return sendSuccess(res, 'Storage quota information fetched successfully', info);
+  } catch (error) {
+    next(error);
   }
-  const fileData = formatFileResponse(req, req.file);
-  return sendSuccess(res, 'File uploaded successfully', fileData, 201);
+});
+
+// ═══ VALIDATE COMPLETE MESSAGE PRE-FLIGHT ═══
+router.post('/validate-message', (req: Request, res: Response) => {
+  const validation = validationService.validateCompleteMessage(req.body);
+  return sendSuccess(res, 'Message validation completed', validation);
+});
+
+// ═══ SINGLE FILE UPLOAD WITH VALIDATION & QUOTA ═══
+router.post('/media', uploadMiddleware.single('file'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return sendError(res, 'No file provided in request', 400);
+    }
+    const userId = req.user?.userId || 'dev-user';
+    const result = await validateAndRecordUpload(req, req.file, userId);
+    return sendSuccess(res, 'File uploaded and validated successfully', result, 201);
+  } catch (error: any) {
+    if (error.code === 'FILE_VALIDATION_FAILED' || error.code === 'STORAGE_QUOTA_EXCEEDED') {
+      return sendError(res, error.message, 400, {
+        errors: error.errors || [error.message],
+        suggestions: error.suggestions || [error.suggestion],
+      });
+    }
+    next(error);
+  }
 });
 
 router.post('/multiple', uploadMiddleware.array('files', 10), (req: Request, res: Response) => {

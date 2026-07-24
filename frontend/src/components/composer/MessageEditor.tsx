@@ -2,15 +2,21 @@
 
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, Strikethrough, Code, Sparkles, Smile } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Sparkles, Smile, AlertTriangle, AlertCircle } from 'lucide-react';
 
 interface MessageEditorProps {
   text: string;
   onChange: (text: string) => void;
   onOpenSpintaxPreview?: () => void;
+  hasButtons?: boolean;
 }
 
-export default function MessageEditor({ text, onChange, onOpenSpintaxPreview }: MessageEditorProps) {
+export default function MessageEditor({
+  text,
+  onChange,
+  onOpenSpintaxPreview,
+  hasButtons = false,
+}: MessageEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -53,16 +59,52 @@ export default function MessageEditor({ text, onChange, onOpenSpintaxPreview }: 
   ];
 
   const charLength = text.length;
-  const counterColor = charLength < 500 ? 'text-emerald-500 font-bold' : charLength < 1000 ? 'text-amber-500 font-bold' : 'text-rose-500 font-bold';
+  const maxLength = hasButtons ? 1024 : 4096;
+  const recommendedLength = hasButtons ? 500 : 1000;
+
+  const isExceeded = charLength > maxLength;
+  const isRecommendedExceeded = charLength > recommendedLength && !isExceeded;
+
+  const counterColor = isExceeded
+    ? 'text-rose-500 font-extrabold'
+    : isRecommendedExceeded
+    ? 'text-amber-500 font-bold'
+    : 'text-emerald-500 font-bold';
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold uppercase text-muted-foreground">Message Content</label>
+        <label className="text-xs font-semibold uppercase text-muted-foreground">
+          Message Content {hasButtons && '(Interactive Mode: Max 1,024 chars)'}
+        </label>
         <span className={`text-[11px] ${counterColor}`}>
-          {charLength} / 65,536 chars {charLength >= 1000 && '(Long Message Warning)'}
+          {charLength} / {maxLength.toLocaleString()} chars
         </span>
       </div>
+
+      {/* Exceeded Warning Banner */}
+      {isExceeded && (
+        <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-300 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-rose-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">❌ WhatsApp Meta Message Limit Exceeded</p>
+            <p className="mt-0.5">
+              Your message is {charLength.toLocaleString()} characters. Maximum allowed is {maxLength.toLocaleString()} chars{' '}
+              {hasButtons ? '(when buttons are attached)' : ''}. Please shorten by {(charLength - maxLength).toLocaleString()} characters.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Recommended Exceeded Warning Banner */}
+      {isRecommendedExceeded && (
+        <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+          <span>
+            💡 <strong>Delivery Tip:</strong> Messages under {recommendedLength} chars yield 34% higher response & delivery rates.
+          </span>
+        </div>
+      )}
 
       {/* Editor Formatting Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-t-2xl border border-b-0 border-border bg-accent/40">
@@ -176,7 +218,9 @@ export default function MessageEditor({ text, onChange, onOpenSpintaxPreview }: 
         value={text}
         onChange={(e) => onChange(e.target.value)}
         placeholder="{Hi|Hello|Hey} {{name}}, we have a special discount for customers in {{city}}! Check our latest offers."
-        className="w-full rounded-b-2xl border border-border bg-card p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        className={`w-full rounded-b-2xl border bg-card p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${
+          isExceeded ? 'border-rose-500 focus:ring-rose-500' : 'border-border focus:ring-primary'
+        }`}
       />
     </div>
   );
