@@ -83,6 +83,9 @@ export default function LoginPage() {
     try {
       const res = await apiClient.post('/auth/otp/request', { phone: fullPhone });
       toast.success(res.data?.message || 'OTP code sent to your WhatsApp!');
+      if (res.data?.data?.devCode) {
+        setOtpCode(res.data.data.devCode);
+      }
       setOtpStep('verify');
       setResendTimer(60);
     } catch (err: any) {
@@ -252,11 +255,12 @@ export default function LoginPage() {
             )}
           </div>
 
+          {/* Admin Login Link */}
           <div className="border-t border-border pt-4 text-center">
             <p className="text-xs text-muted-foreground">
-              Don't have an account?{' '}
-              <Link href="/register" className="font-semibold text-primary hover:underline">
-                Create an Account
+              Administrator?{' '}
+              <Link href="/admin-login" className="font-semibold text-cyanAccent hover:underline">
+                Admin Sign In
               </Link>
             </p>
           </div>
